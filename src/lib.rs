@@ -1,16 +1,20 @@
 mod finder;
-mod generic;
-mod joiner;
 
-use finder::{GenericPrefix, GenericSuffix, StringPrefix, StringSuffix};
-use generic::find_common;
-
-const PAR_THRESHOLD: usize = 1 << 13;
+use finder::*;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 pub trait CommonStr {
+    /// Returns the longest common prefix of all strings.
     fn prefix(&self) -> Option<String>;
 
+    /// Returns the longest common suffix of all strings.
     fn suffix(&self) -> Option<String>;
+
+    /// Returns the length of the longest common prefix of all strings.
+    fn prefix_len(&self) -> Option<usize>;
+
+    /// Returns the length of the longest common suffix of all strings.
+    fn suffix_len(&self) -> Option<usize>;
 }
 
 impl<T> CommonStr for [T]
@@ -26,6 +30,16 @@ where
     fn suffix(&self) -> Option<String> {
         find_common::<StringSuffix, _, _>(self).map(|s| s.to_owned())
     }
+
+    #[inline(never)]
+    fn prefix_len(&self) -> Option<usize> {
+        find_common::<StringPrefix, _, _>(self).map(|s| s.len())
+    }
+
+    #[inline(never)]
+    fn suffix_len(&self) -> Option<usize> {
+        find_common::<StringSuffix, _, _>(self).map(|s| s.len())
+    }
 }
 
 pub trait CommonRaw<T> {
@@ -33,9 +47,9 @@ pub trait CommonRaw<T> {
 
     fn suffix_raw(&self) -> Option<Vec<T>>;
 
-    fn prefix_len(&self) -> Option<usize>;
+    fn prefix_raw_len(&self) -> Option<usize>;
 
-    fn suffix_len(&self) -> Option<usize>;
+    fn suffix_raw_len(&self) -> Option<usize>;
 }
 
 impl<T, U> CommonRaw<U> for [T]
@@ -54,14 +68,27 @@ where
     }
 
     #[inline(never)]
-    fn prefix_len(&self) -> Option<usize> {
+    fn prefix_raw_len(&self) -> Option<usize> {
         find_common::<GenericPrefix, _, _>(self).map(|s| s.len())
     }
 
     #[inline(never)]
-    fn suffix_len(&self) -> Option<usize> {
+    fn suffix_raw_len(&self) -> Option<usize> {
         find_common::<GenericSuffix, _, _>(self).map(|s| s.len())
     }
+}
+
+#[inline]
+fn find_common<F, T, U>(slice: &[T]) -> Option<&U>
+where
+    F: Finder<U>,
+    T: AsRef<U> + Sync,
+    U: ?Sized + Sync,
+{
+    slice
+        .into_par_iter()
+        .map(move |v| v.as_ref())
+        .reduce_with(|common, cur| F::common(common, cur))
 }
 
 #[cfg(test)]
