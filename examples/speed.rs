@@ -5,9 +5,7 @@ use rayon::prelude::*;
 use ya_rand::*;
 
 const COMMON: &str = "愛 This is the common SHITE xD 愛";
-const SIZES: [usize; 14] = [
-    1 << 12,
-    1 << 13,
+const SIZES: [usize; 11] = [
     1 << 14,
     1 << 15,
     1 << 16,
@@ -19,9 +17,6 @@ const SIZES: [usize; 14] = [
     1 << 22,
     1 << 23,
     1 << 24,
-    16780523,
-    //1 << 25,
-    //1 << 26,
 ];
 
 fn main() {
@@ -29,14 +24,14 @@ fn main() {
     println!("starting program");
     run_it_p();
     run_it_s();
-    /*for _ in 0..512 {
+    for _ in 0..128 {
         let prefix = random_string::<64, 64>(&mut new_rng());
         let suffix = prefix.clone();
         let mut string_list = random_strings(*SIZES.first().unwrap());
         append_at_front(&mut string_list, &prefix);
         append_at_rear(&mut string_list, &suffix);
 
-        let t1 = string_list.prefix_str().unwrap();
+        let t1 = string_list.common_prefix().unwrap();
         if prefix == t1 {
             //println!("Successfully identified prefix!");
         } else {
@@ -44,7 +39,7 @@ fn main() {
             std::thread::sleep(std::time::Duration::from_secs(1));
         }
 
-        let t2 = string_list.suffix_str().unwrap();
+        let t2 = string_list.common_suffix().unwrap();
         if suffix == t2 {
             //println!("Successfully identified suffix!");
         } else {
@@ -53,7 +48,7 @@ fn main() {
         }
     }
     println!("SUCCESS");
-    println!();*/
+    println!();
 }
 
 fn append_at_front(strings: &mut [String], append: &str) {
@@ -109,7 +104,7 @@ fn gen_strings_s(size: usize) -> Vec<String> {
 fn run_it_s() {
     let strings = gen_strings_s(*SIZES.last().unwrap());
     for size in SIZES {
-        let (prefix, time) = time(|| strings[..size].suffix().unwrap());
+        let (prefix, time) = time(|| strings[..size].common_suffix().unwrap());
         if prefix == COMMON {
             print!("Successfully identified");
         } else {
@@ -134,7 +129,7 @@ fn gen_strings_p(size: usize) -> Vec<String> {
 fn run_it_p() {
     let strings = gen_strings_p(*SIZES.last().unwrap());
     for size in SIZES {
-        let (prefix, time) = time(|| strings[..size].prefix().unwrap());
+        let (prefix, time) = time(|| strings[..size].common_prefix().unwrap());
         if prefix == COMMON {
             print!("Successfully identified");
         } else {

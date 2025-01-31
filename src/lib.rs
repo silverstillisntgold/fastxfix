@@ -1,20 +1,20 @@
 mod finder;
 
 use finder::*;
-use rayon::iter::{IntoParallelIterator, ParallelIterator};
+use rayon::prelude::*;
 
 pub trait CommonStr {
     /// Returns the longest common prefix of all strings.
-    fn prefix(&self) -> Option<String>;
+    fn common_prefix(&self) -> Option<String>;
 
     /// Returns the longest common suffix of all strings.
-    fn suffix(&self) -> Option<String>;
+    fn common_suffix(&self) -> Option<String>;
 
     /// Returns the length of the longest common prefix of all strings.
-    fn prefix_len(&self) -> Option<usize>;
+    fn common_prefix_len(&self) -> Option<usize>;
 
     /// Returns the length of the longest common suffix of all strings.
-    fn suffix_len(&self) -> Option<usize>;
+    fn common_suffix_len(&self) -> Option<usize>;
 }
 
 impl<T> CommonStr for [T]
@@ -22,34 +22,34 @@ where
     T: AsRef<str> + Sync,
 {
     #[inline(never)]
-    fn prefix(&self) -> Option<String> {
+    fn common_prefix(&self) -> Option<String> {
         find_common::<StringPrefix, _, _>(self).map(|s| s.to_owned())
     }
 
     #[inline(never)]
-    fn suffix(&self) -> Option<String> {
+    fn common_suffix(&self) -> Option<String> {
         find_common::<StringSuffix, _, _>(self).map(|s| s.to_owned())
     }
 
     #[inline(never)]
-    fn prefix_len(&self) -> Option<usize> {
+    fn common_prefix_len(&self) -> Option<usize> {
         find_common::<StringPrefix, _, _>(self).map(|s| s.len())
     }
 
     #[inline(never)]
-    fn suffix_len(&self) -> Option<usize> {
+    fn common_suffix_len(&self) -> Option<usize> {
         find_common::<StringSuffix, _, _>(self).map(|s| s.len())
     }
 }
 
 pub trait CommonRaw<T> {
-    fn prefix_raw(&self) -> Option<Vec<T>>;
+    fn common_prefix_raw(&self) -> Option<Vec<T>>;
 
-    fn suffix_raw(&self) -> Option<Vec<T>>;
+    fn common_suffix_raw(&self) -> Option<Vec<T>>;
 
-    fn prefix_raw_len(&self) -> Option<usize>;
+    fn common_prefix_raw_len(&self) -> Option<usize>;
 
-    fn suffix_raw_len(&self) -> Option<usize>;
+    fn common_suffix_raw_len(&self) -> Option<usize>;
 }
 
 impl<T, U> CommonRaw<U> for [T]
@@ -58,22 +58,22 @@ where
     U: Clone + Eq + Sync,
 {
     #[inline(never)]
-    fn prefix_raw(&self) -> Option<Vec<U>> {
+    fn common_prefix_raw(&self) -> Option<Vec<U>> {
         find_common::<GenericPrefix, _, _>(self).map(|s| s.to_owned())
     }
 
     #[inline(never)]
-    fn suffix_raw(&self) -> Option<Vec<U>> {
+    fn common_suffix_raw(&self) -> Option<Vec<U>> {
         find_common::<GenericSuffix, _, _>(self).map(|s| s.to_owned())
     }
 
     #[inline(never)]
-    fn prefix_raw_len(&self) -> Option<usize> {
+    fn common_prefix_raw_len(&self) -> Option<usize> {
         find_common::<GenericPrefix, _, _>(self).map(|s| s.len())
     }
 
     #[inline(never)]
-    fn suffix_raw_len(&self) -> Option<usize> {
+    fn common_suffix_raw_len(&self) -> Option<usize> {
         find_common::<GenericSuffix, _, _>(self).map(|s| s.len())
     }
 }
@@ -87,7 +87,8 @@ where
 {
     slice
         .into_par_iter()
-        .map(move |v| v.as_ref())
+        .map(|v| v.as_ref())
+        // TODO: Possible to directly use `reduce` instead?
         .reduce_with(|common, cur| F::common(common, cur))
 }
 
@@ -109,7 +110,7 @@ mod tests {
             v.push_str(s.as_str());
             i += 1;
         });
-        let prefix = vec.prefix();
+        let prefix = vec.common_prefix();
         assert_ne!(prefix, None, "prefix should be Some(_)");
         let prefix = prefix.unwrap();
         assert_eq!(prefix, COMMON, "incorrect prefix");
@@ -125,7 +126,7 @@ mod tests {
             v.push_str(COMMON);
             i += 1;
         });
-        let suffix = vec.suffix();
+        let suffix = vec.common_suffix();
         assert_ne!(suffix, None, "suffix should be Some(_)");
         let suffix = suffix.unwrap();
         assert_eq!(suffix, COMMON, "incorrect suffix");
