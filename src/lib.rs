@@ -11,10 +11,10 @@ pub trait CommonStr {
     fn common_suffix(&self) -> Option<String>;
 
     /// Returns the length of the longest common prefix of all strings.
-    fn common_prefix_len(&self) -> Option<usize>;
+    fn common_prefix_len(&self) -> usize;
 
     /// Returns the length of the longest common suffix of all strings.
-    fn common_suffix_len(&self) -> Option<usize>;
+    fn common_suffix_len(&self) -> usize;
 }
 
 impl<T> CommonStr for [T]
@@ -32,13 +32,17 @@ where
     }
 
     #[inline(never)]
-    fn common_prefix_len(&self) -> Option<usize> {
-        find_common::<StringPrefix, _, _>(self).map(|s| s.len())
+    fn common_prefix_len(&self) -> usize {
+        find_common::<StringPrefix, _, _>(self)
+            .map(|s| s.len())
+            .unwrap_or_default()
     }
 
     #[inline(never)]
-    fn common_suffix_len(&self) -> Option<usize> {
-        find_common::<StringSuffix, _, _>(self).map(|s| s.len())
+    fn common_suffix_len(&self) -> usize {
+        find_common::<StringSuffix, _, _>(self)
+            .map(|s| s.len())
+            .unwrap_or_default()
     }
 }
 
@@ -47,9 +51,9 @@ pub trait CommonRaw<T> {
 
     fn common_suffix_raw(&self) -> Option<Vec<T>>;
 
-    fn common_prefix_raw_len(&self) -> Option<usize>;
+    fn common_prefix_raw_len(&self) -> usize;
 
-    fn common_suffix_raw_len(&self) -> Option<usize>;
+    fn common_suffix_raw_len(&self) -> usize;
 }
 
 impl<T, U> CommonRaw<U> for [T]
@@ -68,13 +72,17 @@ where
     }
 
     #[inline(never)]
-    fn common_prefix_raw_len(&self) -> Option<usize> {
-        find_common::<GenericPrefix, _, _>(self).map(|s| s.len())
+    fn common_prefix_raw_len(&self) -> usize {
+        find_common::<GenericPrefix, _, _>(self)
+            .map(|s| s.len())
+            .unwrap_or_default()
     }
 
     #[inline(never)]
-    fn common_suffix_raw_len(&self) -> Option<usize> {
-        find_common::<GenericSuffix, _, _>(self).map(|s| s.len())
+    fn common_suffix_raw_len(&self) -> usize {
+        find_common::<GenericSuffix, _, _>(self)
+            .map(|s| s.len())
+            .unwrap_or_default()
     }
 }
 
@@ -88,7 +96,7 @@ where
     slice
         .into_par_iter()
         .map(|v| v.as_ref())
-        // TODO: Possible to directly use `reduce` instead?
+        // TODO: Could it be possible to directly use `reduce` instead?
         .reduce_with(|common, cur| F::common(common, cur))
 }
 

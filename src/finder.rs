@@ -32,7 +32,7 @@ where
     #[inline]
     fn count_eq_chars(self) -> usize {
         self.take_while(|(a, b)| a.eq(b))
-            .map(|(x, _)| x.len_utf8())
+            .map(|(a, _)| a.len_utf8())
             .sum()
     }
 }

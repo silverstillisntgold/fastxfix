@@ -7,4 +7,4 @@ edition = "2021"
 rayon = "1.10"
 
 [dev-dependencies]
-ya-rand = { path = "../ya-rand" }
+ya-rand = "0.1"
