@@ -96,47 +96,44 @@ where
     slice
         .into_par_iter()
         .map(|v| v.as_ref())
-        // TODO: Could it be possible to directly use `reduce` instead?
         .reduce_with(|common, cur| F::common(common, cur))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use core::hint::black_box;
+    use ya_rand::*;
+    use ya_rand_encoding::Base64URL as Encoder;
 
-    const COMMON: &str = "愛 This is the common SHITE xD 愛";
-    const SIZE: usize = 1 << 12;
+    const SEARCH_LEN: usize = 69;
+    const STRING_LEN: usize = 420;
+    const LEN: usize = 1 << 12;
 
     #[test]
     fn prefix() {
-        let mut vec = vec![String::with_capacity(256); SIZE];
-        let mut i = black_box(SIZE);
-        vec.iter_mut().for_each(|v| {
-            let s = i.to_string();
-            v.push_str(COMMON);
-            v.push_str(s.as_str());
-            i += 1;
+        let mut rng = new_rng_secure();
+        let base_prefix = rng.text::<Encoder>(SEARCH_LEN).unwrap();
+        let mut strings = vec![String::with_capacity(SEARCH_LEN + STRING_LEN); LEN];
+        strings.iter_mut().for_each(|s| {
+            s.push_str(&base_prefix);
+            let suffix = rng.text::<Encoder>(STRING_LEN).unwrap();
+            s.push_str(&suffix);
         });
-        let prefix = vec.common_prefix();
-        assert_ne!(prefix, None, "prefix should be Some(_)");
-        let prefix = prefix.unwrap();
-        assert_eq!(prefix, COMMON, "incorrect prefix");
+        let prefix = strings.common_prefix().expect("should be `Some`");
+        assert!(prefix == base_prefix, "incorrect prefix");
     }
 
     #[test]
     fn suffix() {
-        let mut vec = vec![String::with_capacity(256); SIZE];
-        let mut i = black_box(SIZE);
-        vec.iter_mut().for_each(|v| {
-            let s = i.to_string();
-            v.push_str(s.as_str());
-            v.push_str(COMMON);
-            i += 1;
+        let mut rng = new_rng_secure();
+        let base_suffix = rng.text::<Encoder>(SEARCH_LEN).unwrap();
+        let mut strings = vec![String::with_capacity(SEARCH_LEN + STRING_LEN); LEN];
+        strings.iter_mut().for_each(|s| {
+            let prefix = rng.text::<Encoder>(STRING_LEN).unwrap();
+            s.push_str(&prefix);
+            s.push_str(&base_suffix);
         });
-        let suffix = vec.common_suffix();
-        assert_ne!(suffix, None, "suffix should be Some(_)");
-        let suffix = suffix.unwrap();
-        assert_eq!(suffix, COMMON, "incorrect suffix");
+        let prefix = strings.common_suffix().expect("should be `Some`");
+        assert!(prefix == base_suffix, "incorrect suffix");
     }
 }

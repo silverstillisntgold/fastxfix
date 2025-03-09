@@ -7,4 +7,4 @@ edition = "2021"
 rayon = "1.10"
 
 [dev-dependencies]
-ya-rand = "0.1"
+ya-rand = "1"
