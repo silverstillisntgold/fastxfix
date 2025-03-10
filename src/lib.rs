@@ -105,35 +105,35 @@ mod tests {
     use ya_rand::*;
     use ya_rand_encoding::Base64URL as Encoder;
 
+    const LEN: usize = 1 << 12;
     const SEARCH_LEN: usize = 69;
     const STRING_LEN: usize = 420;
-    const LEN: usize = 1 << 12;
 
     #[test]
     fn prefix() {
         let mut rng = new_rng_secure();
-        let base_prefix = rng.text::<Encoder>(SEARCH_LEN).unwrap();
+        let base = rng.text::<Encoder>(SEARCH_LEN).unwrap();
         let mut strings = vec![String::with_capacity(SEARCH_LEN + STRING_LEN); LEN];
         strings.iter_mut().for_each(|s| {
-            s.push_str(&base_prefix);
-            let suffix = rng.text::<Encoder>(STRING_LEN).unwrap();
-            s.push_str(&suffix);
+            let ext = rng.text::<Encoder>(STRING_LEN).unwrap();
+            s.push_str(&base);
+            s.push_str(&ext);
         });
-        let prefix = strings.common_prefix().expect("should be `Some`");
-        assert!(prefix == base_prefix, "incorrect prefix");
+        let prefix = strings.common_prefix().unwrap();
+        assert!(base == prefix, "incorrect prefix");
     }
 
     #[test]
     fn suffix() {
         let mut rng = new_rng_secure();
-        let base_suffix = rng.text::<Encoder>(SEARCH_LEN).unwrap();
+        let base = rng.text::<Encoder>(SEARCH_LEN).unwrap();
         let mut strings = vec![String::with_capacity(SEARCH_LEN + STRING_LEN); LEN];
         strings.iter_mut().for_each(|s| {
-            let prefix = rng.text::<Encoder>(STRING_LEN).unwrap();
-            s.push_str(&prefix);
-            s.push_str(&base_suffix);
+            let ext = rng.text::<Encoder>(STRING_LEN).unwrap();
+            s.push_str(&ext);
+            s.push_str(&base);
         });
-        let prefix = strings.common_suffix().expect("should be `Some`");
-        assert!(prefix == base_suffix, "incorrect suffix");
+        let suffix = strings.common_suffix().unwrap();
+        assert!(base == suffix, "incorrect suffix");
     }
 }
