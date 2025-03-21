@@ -24,7 +24,7 @@ fn main() {
     println!("starting program");
     run_it_p();
     run_it_s();
-    for _ in 0..128 {
+    for _ in 0..64 {
         let prefix = random_string::<64, 64>(&mut new_rng());
         let suffix = prefix.clone();
         let mut string_list = random_strings(*SIZES.first().unwrap());
@@ -104,8 +104,8 @@ fn gen_strings_s(size: usize) -> Vec<String> {
 fn run_it_s() {
     let strings = gen_strings_s(*SIZES.last().unwrap());
     for size in SIZES {
-        let (prefix, time) = time(|| strings[..size].common_suffix().unwrap());
-        if prefix == COMMON {
+        let (suffix, time) = time(|| strings[..size].common_suffix());
+        if suffix.is_some() && suffix.unwrap() == COMMON {
             print!("Successfully identified");
         } else {
             print!("Failed to identify");
@@ -129,8 +129,8 @@ fn gen_strings_p(size: usize) -> Vec<String> {
 fn run_it_p() {
     let strings = gen_strings_p(*SIZES.last().unwrap());
     for size in SIZES {
-        let (prefix, time) = time(|| strings[..size].common_prefix().unwrap());
-        if prefix == COMMON {
+        let (prefix, time) = time(|| strings[..size].common_prefix());
+        if prefix.is_some() && prefix.unwrap() == COMMON {
             print!("Successfully identified");
         } else {
             print!("Failed to identify");

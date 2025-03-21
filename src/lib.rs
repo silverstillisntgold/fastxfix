@@ -97,29 +97,23 @@ where
         .into_par_iter()
         .try_fold(
             || None,
-            |acc, v| {
-                let result = match acc {
-                    Some(prefix) => F::common(prefix, v.as_ref()),
-                    None => Some(v.as_ref()),
-                };
-                match result {
-                    Some(prefix) => Some(Some(prefix)),
-                    None => None,
-                }
+            |common_prefix, value| {
+                let result = match common_prefix {
+                    Some(prefix) => F::common(prefix, value.as_ref()),
+                    None => Some(value.as_ref()),
+                }?;
+                Some(Some(result))
             },
         )
         .try_reduce(
             || None,
             |a, b| {
                 let result = match (a, b) {
-                    (Some(x), Some(y)) => F::common(x, y),
+                    (Some(a), Some(b)) => F::common(a, b),
                     (Some(c), None) | (None, Some(c)) => Some(c),
                     (None, None) => None,
-                };
-                match result {
-                    Some(prefix) => Some(Some(prefix)),
-                    None => None,
-                }
+                }?;
+                Some(Some(result))
             },
         )
         .flatten()

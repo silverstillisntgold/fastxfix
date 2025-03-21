@@ -6,10 +6,6 @@ trait CharEqCounter {
     fn count_eq_chars(self) -> usize;
 }
 
-trait EqCounter {
-    fn count_eq(self) -> usize;
-}
-
 impl<T> CharEqCounter for T
 where
     T: Iterator<Item = (char, char)>,
@@ -20,6 +16,10 @@ where
             .map(|(a, _)| a.len_utf8())
             .sum()
     }
+}
+
+trait EqCounter {
+    fn count_eq(self) -> usize;
 }
 
 impl<T, U> EqCounter for T
@@ -55,10 +55,10 @@ impl Finder<str> for StringSuffix {
         let b_iter = b.chars().rev();
         let end = a_iter.zip(b_iter).count_eq_chars();
         match end != 0 {
-            true => {
+            true => Some({
                 let begin = a.len() - end;
-                Some(unsafe { a.get_unchecked(begin..) })
-            }
+                unsafe { a.get_unchecked(begin..) }
+            }),
             false => None,
         }
     }
@@ -92,10 +92,10 @@ where
         let b_iter = b.into_iter().rev();
         let end = a_iter.zip(b_iter).count_eq();
         match end != 0 {
-            true => {
+            true => Some({
                 let begin = a.len() - end;
-                Some(unsafe { a.get_unchecked(begin..) })
-            }
+                unsafe { a.get_unchecked(begin..) }
+            }),
             false => None,
         }
     }
