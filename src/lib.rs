@@ -95,13 +95,12 @@ where
 {
     slice
         .into_par_iter()
-        .map(|v| v.as_ref())
         .try_fold(
             || None,
             |acc, v| {
                 let result = match acc {
-                    Some(prefix) => F::common(prefix, v),
-                    None => Some(v),
+                    Some(prefix) => F::common(prefix, v.as_ref()),
+                    None => Some(v.as_ref()),
                 };
                 match result {
                     Some(prefix) => Some(Some(prefix)),

@@ -1,6 +1,4 @@
 pub trait Finder<T: ?Sized> {
-    /// Returns `Some` when `a` and `b` have a
-    /// common prefix/suffix.
     fn common<'a>(a: &'a T, b: &T) -> Option<&'a T>;
 }
 
@@ -39,11 +37,13 @@ pub struct StringPrefix;
 impl Finder<str> for StringPrefix {
     #[inline]
     fn common<'a>(a: &'a str, b: &str) -> Option<&'a str> {
-        let end = a.chars().zip(b.chars()).count_eq_chars();
-        if end == 0 {
-            return None;
+        let a_iter = a.chars();
+        let b_iter = b.chars();
+        let end = a_iter.zip(b_iter).count_eq_chars();
+        match end != 0 {
+            true => Some(unsafe { a.get_unchecked(..end) }),
+            false => None,
         }
-        Some(unsafe { a.get_unchecked(..end) })
     }
 }
 
@@ -51,36 +51,52 @@ pub struct StringSuffix;
 impl Finder<str> for StringSuffix {
     #[inline]
     fn common<'a>(a: &'a str, b: &str) -> Option<&'a str> {
-        let end = a.chars().rev().zip(b.chars().rev()).count_eq_chars();
-        if end == 0 {
-            return None;
+        let a_iter = a.chars().rev();
+        let b_iter = b.chars().rev();
+        let end = a_iter.zip(b_iter).count_eq_chars();
+        match end != 0 {
+            true => {
+                let begin = a.len() - end;
+                Some(unsafe { a.get_unchecked(begin..) })
+            }
+            false => None,
         }
-        let begin = a.len() - end;
-        Some(unsafe { a.get_unchecked(begin..) })
     }
 }
 
 pub struct GenericPrefix;
-impl<T: Eq> Finder<[T]> for GenericPrefix {
+impl<T> Finder<[T]> for GenericPrefix
+where
+    T: Eq,
+{
     #[inline]
     fn common<'a>(a: &'a [T], b: &[T]) -> Option<&'a [T]> {
-        let end = a.into_iter().zip(b.into_iter()).count_eq();
-        if end == 0 {
-            return None;
+        let a_iter = a.into_iter();
+        let b_iter = b.into_iter();
+        let end = a_iter.zip(b_iter).count_eq();
+        match end != 0 {
+            true => Some(unsafe { a.get_unchecked(..end) }),
+            false => None,
         }
-        Some(unsafe { a.get_unchecked(..end) })
     }
 }
 
 pub struct GenericSuffix;
-impl<T: Eq> Finder<[T]> for GenericSuffix {
+impl<T> Finder<[T]> for GenericSuffix
+where
+    T: Eq,
+{
     #[inline]
     fn common<'a>(a: &'a [T], b: &[T]) -> Option<&'a [T]> {
-        let end = a.into_iter().rev().zip(b.into_iter().rev()).count_eq();
-        if end == 0 {
-            return None;
+        let a_iter = a.into_iter().rev();
+        let b_iter = b.into_iter().rev();
+        let end = a_iter.zip(b_iter).count_eq();
+        match end != 0 {
+            true => {
+                let begin = a.len() - end;
+                Some(unsafe { a.get_unchecked(begin..) })
+            }
+            false => None,
         }
-        let begin = a.len() - end;
-        Some(unsafe { a.get_unchecked(begin..) })
     }
 }
