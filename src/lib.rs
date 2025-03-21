@@ -96,7 +96,34 @@ where
     slice
         .into_par_iter()
         .map(|v| v.as_ref())
-        .reduce_with(|common, cur| F::common(common, cur))
+        .try_fold(
+            || None,
+            |acc, v| {
+                let result = match acc {
+                    Some(prefix) => F::common(prefix, v),
+                    None => Some(v),
+                };
+                match result {
+                    Some(prefix) => Some(Some(prefix)),
+                    None => None,
+                }
+            },
+        )
+        .try_reduce(
+            || None,
+            |a, b| {
+                let result = match (a, b) {
+                    (Some(x), Some(y)) => F::common(x, y),
+                    (Some(c), None) | (None, Some(c)) => Some(c),
+                    (None, None) => None,
+                };
+                match result {
+                    Some(prefix) => Some(Some(prefix)),
+                    None => None,
+                }
+            },
+        )
+        .flatten()
 }
 
 #[cfg(test)]
