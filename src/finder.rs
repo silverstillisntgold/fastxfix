@@ -2,22 +2,6 @@ pub trait Finder<T: ?Sized> {
     fn common<'a>(a: &'a T, b: &T) -> Option<&'a T>;
 }
 
-trait CharEqCounter {
-    fn count_eq_chars(self) -> usize;
-}
-
-impl<T> CharEqCounter for T
-where
-    T: Iterator<Item = (char, char)>,
-{
-    #[inline]
-    fn count_eq_chars(self) -> usize {
-        self.take_while(|(a, b)| a.eq(b))
-            .map(|(a, _)| a.len_utf8())
-            .sum()
-    }
-}
-
 trait EqCounter {
     fn count_eq(self) -> usize;
 }
@@ -37,11 +21,16 @@ pub struct StringPrefix;
 impl Finder<str> for StringPrefix {
     #[inline]
     fn common<'a>(a: &'a str, b: &str) -> Option<&'a str> {
-        let a_iter = a.chars();
-        let b_iter = b.chars();
-        let end = a_iter.zip(b_iter).count_eq_chars();
+        let a_iter = a.bytes();
+        let b_iter = b.bytes();
+        let mut end = a_iter.zip(b_iter).count_eq();
         match end != 0 {
-            true => Some(unsafe { a.get_unchecked(..end) }),
+            true => Some({
+                while !a.is_char_boundary(end) {
+                    end -= 1;
+                }
+                unsafe { a.get_unchecked(..end) }
+            }),
             false => None,
         }
     }
@@ -51,12 +40,15 @@ pub struct StringSuffix;
 impl Finder<str> for StringSuffix {
     #[inline]
     fn common<'a>(a: &'a str, b: &str) -> Option<&'a str> {
-        let a_iter = a.chars().rev();
-        let b_iter = b.chars().rev();
-        let end = a_iter.zip(b_iter).count_eq_chars();
+        let a_iter = a.bytes().rev();
+        let b_iter = b.bytes().rev();
+        let end = a_iter.zip(b_iter).count_eq();
         match end != 0 {
             true => Some({
-                let begin = a.len() - end;
+                let mut begin = a.len() - end;
+                while !a.is_char_boundary(begin) {
+                    begin += 1;
+                }
                 unsafe { a.get_unchecked(begin..) }
             }),
             false => None,

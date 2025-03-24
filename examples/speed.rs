@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-use fastxfix::{CommonRaw, CommonStr};
+use fastxfix::*;
 use rayon::prelude::*;
 use ya_rand::*;
 

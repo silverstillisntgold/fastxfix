@@ -4,17 +4,11 @@ use finder::*;
 use rayon::prelude::*;
 
 pub trait CommonStr {
-    /// Returns the longest common prefix of all strings.
+    /// Returns the longest common prefix of all referenced strings.
     fn common_prefix(&self) -> Option<String>;
 
-    /// Returns the longest common suffix of all strings.
+    /// Returns the longest common suffix of all referenced strings.
     fn common_suffix(&self) -> Option<String>;
-
-    /// Returns the length of the longest common prefix of all strings.
-    fn common_prefix_len(&self) -> usize;
-
-    /// Returns the length of the longest common suffix of all strings.
-    fn common_suffix_len(&self) -> usize;
 }
 
 impl<T> CommonStr for [T]
@@ -29,20 +23,6 @@ where
     #[inline(never)]
     fn common_suffix(&self) -> Option<String> {
         find_common::<StringSuffix, _, _>(self).map(|s| s.to_owned())
-    }
-
-    #[inline(never)]
-    fn common_prefix_len(&self) -> usize {
-        find_common::<StringPrefix, _, _>(self)
-            .map(|s| s.len())
-            .unwrap_or_default()
-    }
-
-    #[inline(never)]
-    fn common_suffix_len(&self) -> usize {
-        find_common::<StringSuffix, _, _>(self)
-            .map(|s| s.len())
-            .unwrap_or_default()
     }
 }
 
