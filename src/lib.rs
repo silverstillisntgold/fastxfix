@@ -9,6 +9,12 @@ pub trait CommonStr {
 
     /// Returns the longest common suffix of all referenced strings.
     fn common_suffix(&self) -> Option<String>;
+
+    /// Returns the length of the longest common prefix of all strings.
+    fn common_prefix_len(&self) -> usize;
+
+    /// Returns the length of the longest common suffix of all strings.
+    fn common_suffix_len(&self) -> usize;
 }
 
 impl<T> CommonStr for [T]
@@ -23,6 +29,20 @@ where
     #[inline(never)]
     fn common_suffix(&self) -> Option<String> {
         find_common::<StringSuffix, _, _>(self).map(|s| s.to_owned())
+    }
+
+    #[inline(never)]
+    fn common_prefix_len(&self) -> usize {
+        find_common::<StringPrefix, _, _>(self)
+            .map(|s| s.len())
+            .unwrap_or_default()
+    }
+
+    #[inline(never)]
+    fn common_suffix_len(&self) -> usize {
+        find_common::<StringSuffix, _, _>(self)
+            .map(|s| s.len())
+            .unwrap_or_default()
     }
 }
 
@@ -103,7 +123,7 @@ where
 mod tests {
     use super::*;
     use ya_rand::*;
-    use ya_rand_encoding::Base64URL as Encoder;
+    use ya_rand_encoding::Base64URL;
 
     const LEN: usize = 1 << 12;
     const SEARCH_LEN: usize = 69;
@@ -112,10 +132,10 @@ mod tests {
     #[test]
     fn prefix() {
         let mut rng = new_rng_secure();
-        let base = rng.text::<Encoder>(SEARCH_LEN).unwrap();
+        let base = rng.text::<Base64URL>(SEARCH_LEN).unwrap();
         let mut strings = vec![String::with_capacity(SEARCH_LEN + STRING_LEN); LEN];
         strings.iter_mut().for_each(|s| {
-            let ext = rng.text::<Encoder>(STRING_LEN).unwrap();
+            let ext = rng.text::<Base64URL>(STRING_LEN).unwrap();
             s.push_str(&base);
             s.push_str(&ext);
         });
@@ -126,10 +146,10 @@ mod tests {
     #[test]
     fn suffix() {
         let mut rng = new_rng_secure();
-        let base = rng.text::<Encoder>(SEARCH_LEN).unwrap();
+        let base = rng.text::<Base64URL>(SEARCH_LEN).unwrap();
         let mut strings = vec![String::with_capacity(SEARCH_LEN + STRING_LEN); LEN];
         strings.iter_mut().for_each(|s| {
-            let ext = rng.text::<Encoder>(STRING_LEN).unwrap();
+            let ext = rng.text::<Base64URL>(STRING_LEN).unwrap();
             s.push_str(&ext);
             s.push_str(&base);
         });
