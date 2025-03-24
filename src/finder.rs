@@ -1,6 +1,4 @@
-pub trait Finder<T: ?Sized> {
-    fn common<'a>(a: &'a T, b: &T) -> Option<&'a T>;
-}
+use crate::Finder;
 
 trait EqCounter {
     fn count_eq(self) -> usize;
@@ -19,7 +17,6 @@ where
 
 pub struct StringPrefix;
 impl Finder<str> for StringPrefix {
-    #[inline]
     fn common<'a>(a: &'a str, b: &str) -> Option<&'a str> {
         let a_iter = a.bytes();
         let b_iter = b.bytes();
@@ -38,7 +35,6 @@ impl Finder<str> for StringPrefix {
 
 pub struct StringSuffix;
 impl Finder<str> for StringSuffix {
-    #[inline]
     fn common<'a>(a: &'a str, b: &str) -> Option<&'a str> {
         let a_iter = a.bytes().rev();
         let b_iter = b.bytes().rev();
@@ -61,7 +57,6 @@ impl<T> Finder<[T]> for GenericPrefix
 where
     T: Eq,
 {
-    #[inline]
     fn common<'a>(a: &'a [T], b: &[T]) -> Option<&'a [T]> {
         let a_iter = a.into_iter();
         let b_iter = b.into_iter();
@@ -78,7 +73,6 @@ impl<T> Finder<[T]> for GenericSuffix
 where
     T: Eq,
 {
-    #[inline]
     fn common<'a>(a: &'a [T], b: &[T]) -> Option<&'a [T]> {
         let a_iter = a.into_iter().rev();
         let b_iter = b.into_iter().rev();

@@ -1,7 +1,27 @@
 mod finder;
 
+use cfg_if::cfg_if;
 use finder::*;
 use rayon::prelude::*;
+
+cfg_if! {
+    if #[cfg(any(target_feature = "avx2", target_feature = "sse2"))] {
+        mod x86_simd;
+        use x86_simd::StringPrefix;
+        use x86_simd::StringSuffix;
+    } else if #[cfg(target_feature = "neon")] {
+        mod neon;
+        use finder::StringPrefix;
+        use finder::StringSuffix;
+    } else {
+        use finder::StringPrefix;
+        use finder::StringSuffix;
+    }
+}
+
+trait Finder<T: ?Sized> {
+    fn common<'a>(a: &'a T, b: &T) -> Option<&'a T>;
+}
 
 pub trait CommonStr {
     /// Returns the longest common prefix of all referenced strings.
@@ -86,7 +106,6 @@ where
     }
 }
 
-#[inline]
 fn find_common<F, T, U>(slice: &[T]) -> Option<&U>
 where
     F: Finder<U>,
@@ -155,5 +174,17 @@ mod tests {
         });
         let suffix = strings.common_suffix().unwrap();
         assert!(base == suffix, "incorrect suffix");
+    }
+
+    fn random_char(rng: &mut SecureRng) -> char {
+        let mut result: char;
+        // 2^21 is the lowest power of two above max char value.
+        loop {
+            match char::from_u32(rng.bits(21) as u32) {
+                Some(c) => result = c,
+                None => (),
+            }
+        }
+        result
     }
 }

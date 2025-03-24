@@ -1,5 +1,3 @@
-#![allow(unused)]
-
 use fastxfix::*;
 use rayon::prelude::*;
 use ya_rand::*;
@@ -81,7 +79,7 @@ fn random_string<const MIN: i64, const MAX: i64>(rng: &mut ShiroRng) -> String {
     let cap = rng.range_inclusive(MIN, MAX) as usize;
     let mut chars = String::with_capacity(cap);
     while chars.len() < cap {
-        // 2^21 is the lowest power of two above max char value
+        // 2^21 is the lowest power of two above max char value.
         match char::from_u32(rng.bits(21) as u32) {
             Some(c) => chars.push(c),
             None => {}
