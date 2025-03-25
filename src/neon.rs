@@ -11,6 +11,7 @@ unsafe fn neon_mask(a_ptr: *const u8, b_ptr: *const u8, i: isize) -> u32 {
     let a_chunk = vld1q_u8(a_ptr.add(i as usize));
     let b_chunk = vld1q_u8(b_ptr.add(i as usize));
     let byte_cmp = vceqq_u8(a_chunk, b_chunk);
+    // Neon moment.
     let bits = vshrq_n_u8(byte_cmp, 7);
     let weights = vld1q_u8(WEIGHTS.as_ptr());
     let weighted = vmulq_u8(bits, weights);

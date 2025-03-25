@@ -117,9 +117,10 @@ where
         .try_fold(
             || None,
             |common_prefix, value| {
+                let v_ref = value.as_ref();
                 let result = match common_prefix {
-                    Some(prefix) => F::common(prefix, value.as_ref()),
-                    None => Some(value.as_ref()),
+                    Some(prefix) => F::common(prefix, v_ref),
+                    None => Some(v_ref),
                 }?;
                 Some(Some(result))
             },
@@ -142,49 +143,84 @@ where
 mod tests {
     use super::*;
     use ya_rand::*;
-    use ya_rand_encoding::Base64URL;
 
-    const LEN: usize = 1 << 12;
-    const SEARCH_LEN: usize = 69;
-    const STRING_LEN: usize = 420;
+    const VEC_LEN: usize = 1 << 19;
+    const BASE_LEN: usize = 6;
+    const EXT_LEN: usize = 9;
+    const TOTAL_LEN: usize = BASE_LEN + EXT_LEN;
 
     #[test]
-    fn prefix() {
+    fn prefix_ascii() {
         let mut rng = new_rng_secure();
-        let base = rng.text::<Base64URL>(SEARCH_LEN).unwrap();
-        let mut strings = vec![String::with_capacity(SEARCH_LEN + STRING_LEN); LEN];
+        let base = new_string::<BASE_LEN, _>(|| rng.bits(7) as u8 as char);
+        let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
         strings.iter_mut().for_each(|s| {
-            let ext = rng.text::<Base64URL>(STRING_LEN).unwrap();
+            let ext = new_string::<EXT_LEN, _>(|| rng.bits(7) as u8 as char);
             s.push_str(&base);
             s.push_str(&ext);
         });
         let prefix = strings.common_prefix().unwrap();
-        assert!(base == prefix, "incorrect prefix");
+        assert_eq!(base, prefix);
     }
 
     #[test]
-    fn suffix() {
+    fn suffix_ascii() {
         let mut rng = new_rng_secure();
-        let base = rng.text::<Base64URL>(SEARCH_LEN).unwrap();
-        let mut strings = vec![String::with_capacity(SEARCH_LEN + STRING_LEN); LEN];
+        let base = new_string::<BASE_LEN, _>(|| rng.bits(7) as u8 as char);
+        let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
         strings.iter_mut().for_each(|s| {
-            let ext = rng.text::<Base64URL>(STRING_LEN).unwrap();
+            let ext = new_string::<EXT_LEN, _>(|| rng.bits(7) as u8 as char);
             s.push_str(&ext);
             s.push_str(&base);
         });
         let suffix = strings.common_suffix().unwrap();
-        assert!(base == suffix, "incorrect suffix");
+        assert_eq!(base, suffix);
     }
 
+    #[test]
+    fn prefix_char() {
+        let mut rng = new_rng_secure();
+        let base = new_string::<BASE_LEN, _>(|| random_char(&mut rng));
+        let mut strings = vec![String::with_capacity(TOTAL_LEN * 4); VEC_LEN];
+        strings.iter_mut().for_each(|s| {
+            let ext = new_string::<EXT_LEN, _>(|| random_char(&mut rng));
+            s.push_str(&base);
+            s.push_str(&ext);
+        });
+        let prefix = strings.common_prefix().unwrap();
+        assert_eq!(base, prefix);
+    }
+
+    #[test]
+    fn suffix_char() {
+        let mut rng = new_rng_secure();
+        let base = new_string::<BASE_LEN, _>(|| random_char(&mut rng));
+        let mut strings = vec![String::with_capacity(TOTAL_LEN * 4); VEC_LEN];
+        strings.iter_mut().for_each(|s| {
+            let ext = new_string::<EXT_LEN, _>(|| random_char(&mut rng));
+            s.push_str(&ext);
+            s.push_str(&base);
+        });
+        let prefix = strings.common_suffix().unwrap();
+        assert_eq!(base, prefix);
+    }
+
+    #[inline(always)]
     fn random_char(rng: &mut SecureRng) -> char {
-        let mut result: char;
-        // 2^21 is the lowest power of two above max char value.
         loop {
-            match char::from_u32(rng.bits(21) as u32) {
-                Some(c) => result = c,
+            let val = rng.bits(21) as u32;
+            match char::from_u32(val) {
+                Some(c) => return c,
                 None => (),
             }
         }
-        result
+    }
+
+    #[inline(always)]
+    fn new_string<const SIZE: usize, F>(f: F) -> String
+    where
+        F: FnMut() -> char,
+    {
+        core::iter::repeat_with(f).take(SIZE).collect()
     }
 }
