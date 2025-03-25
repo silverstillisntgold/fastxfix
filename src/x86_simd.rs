@@ -1,3 +1,5 @@
+use crate::finder::finalize_prefix;
+use crate::finder::finalize_suffix;
 use crate::Finder;
 #[cfg(target_arch = "x86")]
 use core::arch::x86::*;
@@ -7,35 +9,7 @@ use core::arch::x86_64::*;
 const AVX2_STEP_SIZE: isize = size_of::<__m256i>() as isize;
 const SSE2_STEP_SIZE: isize = size_of::<__m128i>() as isize;
 
-#[inline]
-fn finalize_prefix(s: &str, end: isize) -> Option<&str> {
-    let mut end = end as usize;
-    match end != 0 {
-        true => Some({
-            while !s.is_char_boundary(end) {
-                end = end.wrapping_sub(1);
-            }
-            unsafe { s.get_unchecked(..end) }
-        }),
-        false => None,
-    }
-}
-
-#[inline]
-fn finalize_suffix(s: &str, begin: isize) -> Option<&str> {
-    let mut begin = begin as usize;
-    match begin != s.len() {
-        true => Some({
-            while !s.is_char_boundary(begin) {
-                begin = begin.wrapping_add(1);
-            }
-            unsafe { s.get_unchecked(begin..) }
-        }),
-        false => None,
-    }
-}
-
-#[inline]
+#[inline(always)]
 unsafe fn avx2_mask(a_ptr: *const u8, b_ptr: *const u8, i: isize) -> u32 {
     let a_chunk = _mm256_loadu_si256(a_ptr.add(i as usize).cast());
     let b_chunk = _mm256_loadu_si256(b_ptr.add(i as usize).cast());
@@ -43,7 +17,7 @@ unsafe fn avx2_mask(a_ptr: *const u8, b_ptr: *const u8, i: isize) -> u32 {
     _mm256_movemask_epi8(byte_cmp) as u32
 }
 
-#[inline]
+#[inline(always)]
 unsafe fn sse2_mask(a_ptr: *const u8, b_ptr: *const u8, i: isize) -> u32 {
     let a_chunk = _mm_loadu_si128(a_ptr.add(i as usize).cast());
     let b_chunk = _mm_loadu_si128(b_ptr.add(i as usize).cast());

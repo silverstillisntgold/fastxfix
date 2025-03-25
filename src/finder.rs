@@ -86,3 +86,33 @@ where
         }
     }
 }
+
+#[allow(unused)]
+#[inline]
+pub fn finalize_prefix(s: &str, end: isize) -> Option<&str> {
+    let mut end = end as usize;
+    match end != 0 {
+        true => Some({
+            while !s.is_char_boundary(end) {
+                end = end.wrapping_sub(1);
+            }
+            unsafe { s.get_unchecked(..end) }
+        }),
+        false => None,
+    }
+}
+
+#[allow(unused)]
+#[inline]
+pub fn finalize_suffix(s: &str, begin: isize) -> Option<&str> {
+    let mut begin = begin as usize;
+    match begin != s.len() {
+        true => Some({
+            while !s.is_char_boundary(begin) {
+                begin = begin.wrapping_add(1);
+            }
+            unsafe { s.get_unchecked(begin..) }
+        }),
+        false => None,
+    }
+}

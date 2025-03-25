@@ -11,8 +11,8 @@ cfg_if! {
         use x86_simd::StringSuffix;
     } else if #[cfg(target_feature = "neon")] {
         mod neon;
-        use finder::StringPrefix;
-        use finder::StringSuffix;
+        use neon::StringPrefix;
+        use neon::StringSuffix;
     } else {
         use finder::StringPrefix;
         use finder::StringSuffix;
