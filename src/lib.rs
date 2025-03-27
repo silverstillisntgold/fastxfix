@@ -124,6 +124,7 @@ mod tests {
     use super::CommonStr;
     use ya_rand::*;
 
+    const BIT_COUNT: u32 = 7;
     const VEC_LEN: usize = 1 << 16;
     const BASE_LEN: usize = 19;
     const EXT_LEN: usize = 13;
@@ -184,15 +185,51 @@ mod tests {
         assert_eq!(prefix, "rés");
         let suffix = input.common_suffix();
         assert_eq!(suffix, None);
+
+        let input = ["abcédef", "xyzèdef"];
+        let prefix = input.common_prefix();
+        assert_eq!(prefix, None);
+        let suffix = input.common_suffix().unwrap();
+        assert_eq!(suffix, "def");
+
+        let input = ["Goodbye 👋", "Farewell 👋"];
+        let prefix = input.common_prefix();
+        assert_eq!(prefix, None);
+        let suffix = input.common_suffix().unwrap();
+        assert_eq!(suffix, " 👋");
+
+        let input = ["Family: 👨‍👩‍👧", "Group: 👨‍👩‍👧"];
+        let prefix = input.common_prefix();
+        assert_eq!(prefix, None);
+        let suffix = input.common_suffix().unwrap();
+        assert_eq!(suffix, ": 👨‍👩‍👧");
+
+        let input = ["just some words 世界", "世界"];
+        let prefix = input.common_prefix();
+        assert_eq!(prefix, None);
+        let suffix = input.common_suffix().unwrap();
+        assert_eq!(suffix, "世界");
+
+        let input = ["tests😀", "best😀"];
+        let prefix = input.common_prefix();
+        assert_eq!(prefix, None);
+        let suffix = input.common_suffix().unwrap();
+        assert_eq!(suffix, "😀");
+
+        let input = ["wowie_bruhther_clap", "wowie-lol-clap", "wowie_xd_clap"];
+        let prefix = input.common_prefix().unwrap();
+        assert_eq!(prefix, "wowie");
+        let suffix = input.common_suffix().unwrap();
+        assert_eq!(suffix, "clap");
     }
 
     #[test]
     fn prefix_ascii_rand() {
         let mut rng = new_rng_secure();
-        let base = new_string::<BASE_LEN, _>(|| rng.bits(7) as u8 as char);
+        let base = new_string::<BASE_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
         let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
         strings.iter_mut().for_each(|s| {
-            let ext = new_string::<EXT_LEN, _>(|| rng.bits(7) as u8 as char);
+            let ext = new_string::<EXT_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
             s.push_str(&base);
             s.push_str(&ext);
         });
@@ -203,10 +240,10 @@ mod tests {
     #[test]
     fn suffix_ascii_rand() {
         let mut rng = new_rng_secure();
-        let base = new_string::<BASE_LEN, _>(|| rng.bits(7) as u8 as char);
+        let base = new_string::<BASE_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
         let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
         strings.iter_mut().for_each(|s| {
-            let ext = new_string::<EXT_LEN, _>(|| rng.bits(7) as u8 as char);
+            let ext = new_string::<EXT_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
             s.push_str(&ext);
             s.push_str(&base);
         });
