@@ -10,89 +10,101 @@ pub trait CommonStr {
     /// Returns the longest common suffix of all referenced strings.
     fn common_suffix(&self) -> Option<String>;
 
-    /// Returns the length of the longest common prefix of all strings.
+    /// Returns the length of the longest common prefix of all referenced strings.
     fn common_prefix_len(&self) -> usize;
 
-    /// Returns the length of the longest common suffix of all strings.
+    /// Returns the length of the longest common suffix of all referenced strings.
     fn common_suffix_len(&self) -> usize;
 }
 
-impl<T> CommonStr for [T]
+impl<C: ?Sized, T> CommonStr for C
 where
+    for<'a> &'a C: IntoParallelIterator<Item = &'a T>,
     T: AsRef<str> + Sync,
 {
     #[inline(never)]
     fn common_prefix(&self) -> Option<String> {
-        find_common::<StringPrefix, _, _>(self).map(|s| s.to_owned())
+        find_common::<_, StringPrefix, _, _>(self).map(|s| s.to_owned())
     }
 
     #[inline(never)]
     fn common_suffix(&self) -> Option<String> {
-        find_common::<StringSuffix, _, _>(self).map(|s| s.to_owned())
+        find_common::<_, StringSuffix, _, _>(self).map(|s| s.to_owned())
     }
 
     #[inline(never)]
     fn common_prefix_len(&self) -> usize {
-        find_common::<StringPrefix, _, _>(self)
+        find_common::<_, StringPrefix, _, _>(self)
             .map(|s| s.len())
             .unwrap_or_default()
     }
 
     #[inline(never)]
     fn common_suffix_len(&self) -> usize {
-        find_common::<StringSuffix, _, _>(self)
+        find_common::<_, StringSuffix, _, _>(self)
             .map(|s| s.len())
             .unwrap_or_default()
     }
 }
 
 pub trait CommonRaw<T> {
+    /// Returns the longest common prefix of all referenced data.
     fn common_prefix_raw(&self) -> Option<Vec<T>>;
 
+    /// Returns the longest common suffix of all referenced data.
     fn common_suffix_raw(&self) -> Option<Vec<T>>;
 
+    /// Returns the length of the longest common prefix of all referenced data.
     fn common_prefix_raw_len(&self) -> usize;
 
+    /// Returns the length of the longest common suffix of all referenced data.
     fn common_suffix_raw_len(&self) -> usize;
 }
 
-impl<T, U> CommonRaw<U> for [T]
+impl<C: ?Sized, T, U> CommonRaw<U> for C
 where
+    for<'a> &'a C: IntoParallelIterator<Item = &'a T>,
     T: AsRef<[U]> + Sync,
     U: Clone + Eq + Sync,
 {
     #[inline(never)]
     fn common_prefix_raw(&self) -> Option<Vec<U>> {
-        find_common::<GenericPrefix, _, _>(self).map(|s| s.to_owned())
+        find_common::<_, GenericPrefix, _, _>(self).map(|s| s.to_owned())
     }
 
     #[inline(never)]
     fn common_suffix_raw(&self) -> Option<Vec<U>> {
-        find_common::<GenericSuffix, _, _>(self).map(|s| s.to_owned())
+        find_common::<_, GenericSuffix, _, _>(self).map(|s| s.to_owned())
     }
 
     #[inline(never)]
     fn common_prefix_raw_len(&self) -> usize {
-        find_common::<GenericPrefix, _, _>(self)
+        find_common::<_, GenericPrefix, _, _>(self)
             .map(|s| s.len())
             .unwrap_or_default()
     }
 
     #[inline(never)]
     fn common_suffix_raw_len(&self) -> usize {
-        find_common::<GenericSuffix, _, _>(self)
+        find_common::<_, GenericSuffix, _, _>(self)
             .map(|s| s.len())
             .unwrap_or_default()
     }
 }
 
-fn find_common<F, T, U>(slice: &[T]) -> Option<&U>
+/// Helper function for finding LCP or LCS. The `U` parameter
+/// must always be a reference to some iterable type, since that's
+/// what `Finder` is designed to work on.
+fn find_common<C: ?Sized, F, T, U>(collection: &C) -> Option<&U>
 where
+    for<'a> &'a C: IntoParallelIterator<Item = &'a T>,
     F: Finder<U>,
     T: AsRef<U> + Sync,
     U: ?Sized + Sync,
 {
-    slice
+    // We use the `try_*` variants of fold/reduce so we can fail early
+    // when any two items don't have a common prefix/suffix.
+    collection
         .into_par_iter()
         .try_fold(
             || None,
@@ -226,10 +238,10 @@ mod tests {
     #[test]
     fn prefix_ascii_rand() {
         let mut rng = new_rng_secure();
-        let base = new_string::<BASE_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
+        let base = new_string_with::<BASE_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
         let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
         strings.iter_mut().for_each(|s| {
-            let ext = new_string::<EXT_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
+            let ext = new_string_with::<EXT_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
             s.push_str(&base);
             s.push_str(&ext);
         });
@@ -240,10 +252,10 @@ mod tests {
     #[test]
     fn suffix_ascii_rand() {
         let mut rng = new_rng_secure();
-        let base = new_string::<BASE_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
+        let base = new_string_with::<BASE_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
         let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
         strings.iter_mut().for_each(|s| {
-            let ext = new_string::<EXT_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
+            let ext = new_string_with::<EXT_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
             s.push_str(&ext);
             s.push_str(&base);
         });
@@ -254,10 +266,10 @@ mod tests {
     #[test]
     fn prefix_char_rand() {
         let mut rng = new_rng_secure();
-        let base = new_string::<BASE_LEN, _>(|| random_char(&mut rng));
+        let base = new_string_with::<BASE_LEN, _>(|| random_char(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN * 4); VEC_LEN];
         strings.iter_mut().for_each(|s| {
-            let ext = new_string::<EXT_LEN, _>(|| random_char(&mut rng));
+            let ext = new_string_with::<EXT_LEN, _>(|| random_char(&mut rng));
             s.push_str(&base);
             s.push_str(&ext);
         });
@@ -268,10 +280,10 @@ mod tests {
     #[test]
     fn suffix_char_rand() {
         let mut rng = new_rng_secure();
-        let base = new_string::<BASE_LEN, _>(|| random_char(&mut rng));
+        let base = new_string_with::<BASE_LEN, _>(|| random_char(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN * 4); VEC_LEN];
         strings.iter_mut().for_each(|s| {
-            let ext = new_string::<EXT_LEN, _>(|| random_char(&mut rng));
+            let ext = new_string_with::<EXT_LEN, _>(|| random_char(&mut rng));
             s.push_str(&ext);
             s.push_str(&base);
         });
@@ -282,6 +294,8 @@ mod tests {
     #[inline(always)]
     fn random_char(rng: &mut SecureRng) -> char {
         loop {
+            // 2^21 is the smallest power-of-two value outside of
+            // the maximum valid UTF-8 character range.
             let val = rng.bits(21) as u32;
             match char::from_u32(val) {
                 Some(c) => return c,
@@ -291,7 +305,7 @@ mod tests {
     }
 
     #[inline(always)]
-    fn new_string<const SIZE: usize, F>(f: F) -> String
+    fn new_string_with<const SIZE: usize, F>(f: F) -> String
     where
         F: FnMut() -> char,
     {
