@@ -1,27 +1,7 @@
 mod finder;
 
-use cfg_if::cfg_if;
 use finder::*;
 use rayon::prelude::*;
-
-cfg_if! {
-    if #[cfg(any(target_feature = "avx2", target_feature = "sse2"))] {
-        mod x86_simd;
-        use x86_simd::StringPrefix;
-        use x86_simd::StringSuffix;
-    } else if #[cfg(target_feature = "neon")] {
-        mod neon;
-        use neon::StringPrefix;
-        use neon::StringSuffix;
-    } else {
-        use finder::StringPrefix;
-        use finder::StringSuffix;
-    }
-}
-
-trait Finder<T: ?Sized> {
-    fn common<'a>(a: &'a T, b: &T) -> Option<&'a T>;
-}
 
 pub trait CommonStr {
     /// Returns the longest common prefix of all referenced strings.
@@ -141,16 +121,67 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::CommonStr;
     use ya_rand::*;
 
-    const VEC_LEN: usize = 1 << 19;
-    const BASE_LEN: usize = 6;
-    const EXT_LEN: usize = 9;
+    const VEC_LEN: usize = 1 << 16;
+    const BASE_LEN: usize = 19;
+    const EXT_LEN: usize = 13;
     const TOTAL_LEN: usize = BASE_LEN + EXT_LEN;
 
     #[test]
-    fn prefix_ascii() {
+    fn test() {
+        let input = ["foobar", "fooqux", "foodle", "fookys"];
+        let prefix = input.common_prefix().unwrap();
+        assert_eq!(prefix, "foo");
+        let suffix = input.common_suffix();
+        assert!(suffix.is_none());
+
+        let input = ["café", "caféine"];
+        let prefix = input.common_prefix().unwrap();
+        assert_eq!(prefix, "café");
+        let suffix = input.common_suffix();
+        assert!(suffix.is_none());
+
+        let input = ["äbc", "âbc"];
+        let prefix = input.common_prefix();
+        assert!(prefix.is_none());
+        let suffix = input.common_suffix().unwrap();
+        assert_eq!(suffix, "bc");
+
+        let input = ["abc€", "xyz€"];
+        let prefix = input.common_prefix();
+        assert!(prefix.is_none());
+        let suffix = input.common_suffix().unwrap();
+        assert_eq!(suffix, "€");
+
+        let input = ["abcä", "defâ"];
+        let prefix = input.common_prefix();
+        assert!(prefix.is_none());
+        let suffix = input.common_suffix();
+        assert!(suffix.is_none());
+
+        let input = ["anything", ""];
+        let prefix = input.common_prefix();
+        assert!(prefix.is_none());
+        let suffix = input.common_suffix();
+        assert!(suffix.is_none());
+
+        let input = ["a🤖b", "a🤡b"];
+        let prefix = input.common_prefix().unwrap();
+        assert_eq!(prefix, "a");
+        let suffix = input.common_suffix().unwrap();
+        assert_eq!(suffix, "b");
+
+        let input = ["résumé", "résister"];
+        let prefix = input.common_prefix().unwrap();
+        assert_eq!(prefix, "rés");
+        let suffix = input.common_suffix();
+        assert!(suffix.is_none());
+    }
+
+    #[test]
+    fn prefix_ascii_rand() {
         let mut rng = new_rng_secure();
         let base = new_string::<BASE_LEN, _>(|| rng.bits(7) as u8 as char);
         let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
@@ -164,7 +195,7 @@ mod tests {
     }
 
     #[test]
-    fn suffix_ascii() {
+    fn suffix_ascii_rand() {
         let mut rng = new_rng_secure();
         let base = new_string::<BASE_LEN, _>(|| rng.bits(7) as u8 as char);
         let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
@@ -178,7 +209,7 @@ mod tests {
     }
 
     #[test]
-    fn prefix_char() {
+    fn prefix_char_rand() {
         let mut rng = new_rng_secure();
         let base = new_string::<BASE_LEN, _>(|| random_char(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN * 4); VEC_LEN];
@@ -192,7 +223,7 @@ mod tests {
     }
 
     #[test]
-    fn suffix_char() {
+    fn suffix_char_rand() {
         let mut rng = new_rng_secure();
         let base = new_string::<BASE_LEN, _>(|| random_char(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN * 4); VEC_LEN];
