@@ -130,42 +130,48 @@ mod tests {
     const TOTAL_LEN: usize = BASE_LEN + EXT_LEN;
 
     #[test]
-    fn test() {
+    fn misc_tests() {
         let input = ["foobar", "fooqux", "foodle", "fookys"];
         let prefix = input.common_prefix().unwrap();
         assert_eq!(prefix, "foo");
         let suffix = input.common_suffix();
-        assert!(suffix.is_none());
+        assert_eq!(suffix, None);
 
         let input = ["café", "caféine"];
         let prefix = input.common_prefix().unwrap();
         assert_eq!(prefix, "café");
         let suffix = input.common_suffix();
-        assert!(suffix.is_none());
+        assert_eq!(suffix, None);
 
         let input = ["äbc", "âbc"];
         let prefix = input.common_prefix();
-        assert!(prefix.is_none());
+        assert_eq!(prefix, None);
         let suffix = input.common_suffix().unwrap();
         assert_eq!(suffix, "bc");
 
         let input = ["abc€", "xyz€"];
         let prefix = input.common_prefix();
-        assert!(prefix.is_none());
+        assert_eq!(prefix, None);
         let suffix = input.common_suffix().unwrap();
         assert_eq!(suffix, "€");
 
         let input = ["abcä", "defâ"];
         let prefix = input.common_prefix();
-        assert!(prefix.is_none());
+        assert_eq!(prefix, None);
         let suffix = input.common_suffix();
-        assert!(suffix.is_none());
+        assert_eq!(suffix, None);
 
-        let input = ["anything", ""];
+        let input = ["some thingy", "nothing"];
         let prefix = input.common_prefix();
-        assert!(prefix.is_none());
+        assert_eq!(prefix, None);
         let suffix = input.common_suffix();
-        assert!(suffix.is_none());
+        assert_eq!(suffix, None);
+
+        let input = ["-lol-", "_lol_"];
+        let prefix = input.common_prefix();
+        assert_eq!(prefix, None);
+        let suffix = input.common_suffix();
+        assert_eq!(suffix, None);
 
         let input = ["a🤖b", "a🤡b"];
         let prefix = input.common_prefix().unwrap();
@@ -177,7 +183,7 @@ mod tests {
         let prefix = input.common_prefix().unwrap();
         assert_eq!(prefix, "rés");
         let suffix = input.common_suffix();
-        assert!(suffix.is_none());
+        assert_eq!(suffix, None);
     }
 
     #[test]
@@ -242,7 +248,7 @@ mod tests {
             let val = rng.bits(21) as u32;
             match char::from_u32(val) {
                 Some(c) => return c,
-                None => (),
+                None => continue,
             }
         }
     }
