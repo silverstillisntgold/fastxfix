@@ -6,15 +6,23 @@ use rayon::prelude::*;
 pub trait CommonStr {
     /// Returns the longest common prefix of all referenced strings.
     fn common_prefix(&self) -> Option<String>;
-
     /// Returns the longest common suffix of all referenced strings.
     fn common_suffix(&self) -> Option<String>;
-
     /// Returns the length of the longest common prefix of all referenced strings.
     fn common_prefix_len(&self) -> usize;
-
     /// Returns the length of the longest common suffix of all referenced strings.
     fn common_suffix_len(&self) -> usize;
+}
+
+pub trait CommonRaw<T> {
+    /// Returns the longest common prefix of all referenced data.
+    fn common_prefix_raw(&self) -> Option<Vec<T>>;
+    /// Returns the longest common suffix of all referenced data.
+    fn common_suffix_raw(&self) -> Option<Vec<T>>;
+    /// Returns the length of the longest common prefix of all referenced data.
+    fn common_prefix_raw_len(&self) -> usize;
+    /// Returns the length of the longest common suffix of all referenced data.
+    fn common_suffix_raw_len(&self) -> usize;
 }
 
 impl<C: ?Sized, T> CommonStr for C
@@ -45,20 +53,6 @@ where
             .map(|s| s.len())
             .unwrap_or_default()
     }
-}
-
-pub trait CommonRaw<T> {
-    /// Returns the longest common prefix of all referenced data.
-    fn common_prefix_raw(&self) -> Option<Vec<T>>;
-
-    /// Returns the longest common suffix of all referenced data.
-    fn common_suffix_raw(&self) -> Option<Vec<T>>;
-
-    /// Returns the length of the longest common prefix of all referenced data.
-    fn common_prefix_raw_len(&self) -> usize;
-
-    /// Returns the length of the longest common suffix of all referenced data.
-    fn common_suffix_raw_len(&self) -> usize;
 }
 
 impl<C: ?Sized, T, U> CommonRaw<U> for C
@@ -92,9 +86,15 @@ where
     }
 }
 
-/// Helper function for finding LCP or LCS. The `U` parameter
-/// must always be a reference to some iterable type, since that's
-/// what `Finder` is designed to work on.
+/// Core function for finding LCP or LCS. It looks a bit involved,
+/// but most of what goes on in here is just to ensure we satisfy the
+/// type constraints laid out by rayon.
+///
+/// The core idea is to, for each pair of referenced values, compute the
+/// result of `Finder::common` and pass that result along to be one of
+/// the values in the next pair. At any point, that result might be `None`,
+/// (there was no common prefix/suffix), and the routine will terminate
+/// as soon as rayon is able to halt execution.
 fn find_common<C: ?Sized, F, T, U>(collection: &C) -> Option<&U>
 where
     for<'a> &'a C: IntoParallelIterator<Item = &'a T>,
@@ -102,17 +102,17 @@ where
     T: AsRef<U> + Sync,
     U: ?Sized + Sync,
 {
-    // We use the `try_*` variants of fold/reduce so we can fail early
-    // when any two items don't have a common prefix/suffix.
+    // We have to use the `try_*` variants of fold/reduce so we can fail
+    // early when any two items don't have a common prefix/suffix.
     collection
         .into_par_iter()
         .try_fold(
             || None,
-            |common_prefix, value| {
-                let v_ref = value.as_ref();
-                let result = match common_prefix {
-                    Some(prefix) => F::common(prefix, v_ref),
-                    None => Some(v_ref),
+            |previous, current| {
+                let c_ref = current.as_ref();
+                let result = match previous {
+                    Some(prefix) => F::common(prefix, c_ref),
+                    None => Some(c_ref),
                 }?;
                 Some(Some(result))
             },
@@ -136,14 +136,13 @@ mod tests {
     use super::CommonStr;
     use ya_rand::*;
 
-    const BIT_COUNT: u32 = 7;
     const VEC_LEN: usize = 1 << 16;
     const BASE_LEN: usize = 19;
     const EXT_LEN: usize = 13;
     const TOTAL_LEN: usize = BASE_LEN + EXT_LEN;
 
     #[test]
-    fn misc_tests() {
+    fn miscellaneous() {
         let input = ["foobar", "fooqux", "foodle", "fookys"];
         let prefix = input.common_prefix().unwrap();
         assert_eq!(prefix, "foo");
@@ -236,59 +235,80 @@ mod tests {
     }
 
     #[test]
-    fn prefix_ascii_rand() {
+    fn prefix_ascii() {
         let mut rng = new_rng_secure();
-        let base = new_string_with::<BASE_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
+        let base = new_string_with::<BASE_LEN, _>(|| random_ascii(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
+
         strings.iter_mut().for_each(|s| {
-            let ext = new_string_with::<EXT_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
+            let ext = new_string_with::<EXT_LEN, _>(|| random_ascii(&mut rng));
             s.push_str(&base);
             s.push_str(&ext);
         });
+
         let prefix = strings.common_prefix().unwrap();
         assert_eq!(base, prefix);
     }
 
     #[test]
-    fn suffix_ascii_rand() {
+    fn suffix_ascii() {
         let mut rng = new_rng_secure();
-        let base = new_string_with::<BASE_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
+        let base = new_string_with::<BASE_LEN, _>(|| random_ascii(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
+
         strings.iter_mut().for_each(|s| {
-            let ext = new_string_with::<EXT_LEN, _>(|| rng.bits(BIT_COUNT) as u8 as char);
+            let ext = new_string_with::<EXT_LEN, _>(|| random_ascii(&mut rng));
             s.push_str(&ext);
             s.push_str(&base);
         });
+
         let suffix = strings.common_suffix().unwrap();
         assert_eq!(base, suffix);
     }
 
     #[test]
-    fn prefix_char_rand() {
+    fn prefix_char() {
         let mut rng = new_rng_secure();
         let base = new_string_with::<BASE_LEN, _>(|| random_char(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN * 4); VEC_LEN];
+
         strings.iter_mut().for_each(|s| {
             let ext = new_string_with::<EXT_LEN, _>(|| random_char(&mut rng));
             s.push_str(&base);
             s.push_str(&ext);
         });
+
         let prefix = strings.common_prefix().unwrap();
         assert_eq!(base, prefix);
     }
 
     #[test]
-    fn suffix_char_rand() {
+    fn suffix_char() {
         let mut rng = new_rng_secure();
         let base = new_string_with::<BASE_LEN, _>(|| random_char(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN * 4); VEC_LEN];
+
         strings.iter_mut().for_each(|s| {
             let ext = new_string_with::<EXT_LEN, _>(|| random_char(&mut rng));
             s.push_str(&ext);
             s.push_str(&base);
         });
-        let prefix = strings.common_suffix().unwrap();
-        assert_eq!(base, prefix);
+
+        let suffix = strings.common_suffix().unwrap();
+        assert_eq!(base, suffix);
+    }
+
+    #[inline(always)]
+    fn new_string_with<const SIZE: usize, F>(f: F) -> String
+    where
+        F: FnMut() -> char,
+    {
+        core::iter::repeat_with(f).take(SIZE).collect()
+    }
+
+    #[inline(always)]
+    fn random_ascii(rng: &mut SecureRng) -> char {
+        rng.bits(7) as u8 as char
     }
 
     #[inline(always)]
@@ -302,13 +322,5 @@ mod tests {
                 None => continue,
             }
         }
-    }
-
-    #[inline(always)]
-    fn new_string_with<const SIZE: usize, F>(f: F) -> String
-    where
-        F: FnMut() -> char,
-    {
-        core::iter::repeat_with(f).take(SIZE).collect()
     }
 }
