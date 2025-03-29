@@ -1,9 +1,33 @@
-/// Equivalent to `__m128i::BITS` / `u8::BITS`. This allows
-/// the string prefix/suffix methods to autovectorize their
-/// operation, providing at least a 50% speed increase.
+/*!
+Contains the core `Finder` trait and concrete implementation for generic prefix/suffix lookup,
+as well as a specialized implementation for strings. Strings need to be handled seperately
+because Rust strings use UTF-8 encoding, so just comparing byte by byte wouldn't work correctly
+for all cases. There are many instances where such an approach might exhibit correct behavior
+(strings which contain only ASCII values is an obvious one), but such an approach may quickly
+devolve into UB when encountering a string where byte-equality ends half-way through a valid char.
+
+The approach I use to solve this issue is very simple. We treat the two strings as byte slices,
+then find the amount of bytes they have in common. We then treat this value as an index
+into the `a` byte slice, and feed it into a loop to adjust the index until it lies on a valid
+char boundary. This adjusted index is then evaluated to determine if the slice it creates would
+be non-empty, and if it is, that's our common prefix/suffix.
+
+An easy optimization for the string implementation is to chunk the two byte slices so they can
+fit into a 128-bit wide vector registor (sse2/neon/simd128), and compare those chunks. Then we
+can multiply the amount of equal chunks we found to the size of our chunks to determine how many
+equivalent bytes the two strings have. After this, we need to check byte-by-byte from where our
+chunks ended to find the final amount of equal bytes in the prefix/suffix.
+In 40 fucking years, when Rust gets specialization, it should be possible to do something similar
+with specialization(s) for the generic `Finder` implementations.
+*/
+
+/// Equivalent to `__m128i::BITS` / `u8::BITS`. This allows the
+/// string prefix/suffix methods to autovectorize their operation,
+/// providing a 50%+ speed increase (on my machine).
 ///
-/// Testing suggests that this doesn't scale all that well, even
-/// in collections containing relatively long prefixes/suffixes.
+/// Testing suggests that this doesn't scale all that well to larger
+/// vector registers, even in collections containing relatively long
+/// prefixes/suffixes.
 const CHUNK_SIZE: usize = 128 / 8;
 
 pub trait Finder<T: ?Sized> {
@@ -101,11 +125,9 @@ where
         let a_iter = a.into_iter().rev();
         let b_iter = b.into_iter().rev();
         let end = a_iter.zip(b_iter).count_eq();
-        match end != 0 {
-            true => Some({
-                let begin = a.len() - end;
-                unsafe { a.get_unchecked(begin..) }
-            }),
+        let begin = a.len() - end;
+        match begin != a.len() {
+            true => Some(unsafe { a.get_unchecked(begin..) }),
             false => None,
         }
     }

@@ -239,13 +239,11 @@ mod tests {
         let mut rng = new_rng_secure();
         let base = new_string_with::<BASE_LEN, _>(|| random_ascii(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
-
         strings.iter_mut().for_each(|s| {
             let ext = new_string_with::<EXT_LEN, _>(|| random_ascii(&mut rng));
             s.push_str(&base);
             s.push_str(&ext);
         });
-
         let prefix = strings.common_prefix().unwrap();
         assert_eq!(base, prefix);
     }
@@ -255,13 +253,11 @@ mod tests {
         let mut rng = new_rng_secure();
         let base = new_string_with::<BASE_LEN, _>(|| random_ascii(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
-
         strings.iter_mut().for_each(|s| {
             let ext = new_string_with::<EXT_LEN, _>(|| random_ascii(&mut rng));
             s.push_str(&ext);
             s.push_str(&base);
         });
-
         let suffix = strings.common_suffix().unwrap();
         assert_eq!(base, suffix);
     }
@@ -271,13 +267,11 @@ mod tests {
         let mut rng = new_rng_secure();
         let base = new_string_with::<BASE_LEN, _>(|| random_char(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN * 4); VEC_LEN];
-
         strings.iter_mut().for_each(|s| {
             let ext = new_string_with::<EXT_LEN, _>(|| random_char(&mut rng));
             s.push_str(&base);
             s.push_str(&ext);
         });
-
         let prefix = strings.common_prefix().unwrap();
         assert_eq!(base, prefix);
     }
@@ -287,13 +281,11 @@ mod tests {
         let mut rng = new_rng_secure();
         let base = new_string_with::<BASE_LEN, _>(|| random_char(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN * 4); VEC_LEN];
-
         strings.iter_mut().for_each(|s| {
             let ext = new_string_with::<EXT_LEN, _>(|| random_char(&mut rng));
             s.push_str(&ext);
             s.push_str(&base);
         });
-
         let suffix = strings.common_suffix().unwrap();
         assert_eq!(base, suffix);
     }
