@@ -2,6 +2,7 @@ mod finder;
 
 use finder::*;
 use rayon::prelude::*;
+use std::num::NonZeroUsize;
 
 pub trait CommonStr {
     /// Returns the longest common prefix of all referenced strings.
@@ -9,9 +10,9 @@ pub trait CommonStr {
     /// Returns the longest common suffix of all referenced strings.
     fn common_suffix(&self) -> Option<String>;
     /// Returns the length of the longest common prefix of all referenced strings.
-    fn common_prefix_len(&self) -> usize;
+    fn common_prefix_len(&self) -> Option<NonZeroUsize>;
     /// Returns the length of the longest common suffix of all referenced strings.
-    fn common_suffix_len(&self) -> usize;
+    fn common_suffix_len(&self) -> Option<NonZeroUsize>;
 }
 
 pub trait CommonRaw<T> {
@@ -20,9 +21,9 @@ pub trait CommonRaw<T> {
     /// Returns the longest common suffix of all referenced data.
     fn common_suffix_raw(&self) -> Option<Vec<T>>;
     /// Returns the length of the longest common prefix of all referenced data.
-    fn common_prefix_raw_len(&self) -> usize;
+    fn common_prefix_raw_len(&self) -> Option<NonZeroUsize>;
     /// Returns the length of the longest common suffix of all referenced data.
-    fn common_suffix_raw_len(&self) -> usize;
+    fn common_suffix_raw_len(&self) -> Option<NonZeroUsize>;
 }
 
 impl<C: ?Sized, T> CommonStr for C
@@ -41,17 +42,15 @@ where
     }
 
     #[inline(never)]
-    fn common_prefix_len(&self) -> usize {
+    fn common_prefix_len(&self) -> Option<NonZeroUsize> {
         find_common::<_, StringPrefix, _, _>(self)
-            .map(|s| s.len())
-            .unwrap_or_default()
+            .map(|val| unsafe { NonZeroUsize::new_unchecked(val.len()) })
     }
 
     #[inline(never)]
-    fn common_suffix_len(&self) -> usize {
+    fn common_suffix_len(&self) -> Option<NonZeroUsize> {
         find_common::<_, StringSuffix, _, _>(self)
-            .map(|s| s.len())
-            .unwrap_or_default()
+            .map(|val| unsafe { NonZeroUsize::new_unchecked(val.len()) })
     }
 }
 
@@ -72,17 +71,15 @@ where
     }
 
     #[inline(never)]
-    fn common_prefix_raw_len(&self) -> usize {
+    fn common_prefix_raw_len(&self) -> Option<NonZeroUsize> {
         find_common::<_, GenericPrefix, _, _>(self)
-            .map(|s| s.len())
-            .unwrap_or_default()
+            .map(|val| unsafe { NonZeroUsize::new_unchecked(val.len()) })
     }
 
     #[inline(never)]
-    fn common_suffix_raw_len(&self) -> usize {
+    fn common_suffix_raw_len(&self) -> Option<NonZeroUsize> {
         find_common::<_, GenericSuffix, _, _>(self)
-            .map(|s| s.len())
-            .unwrap_or_default()
+            .map(|val| unsafe { NonZeroUsize::new_unchecked(val.len()) })
     }
 }
 
