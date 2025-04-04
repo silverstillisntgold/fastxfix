@@ -13,9 +13,9 @@ jobs:
       uses: actions/checkout@v4
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
-    - name: Update dependencies
-      run: cargo update
     - name: Enable full CPU feature set
       run: echo "RUSTFLAGS=-Ctarget-cpu=native" >> "$GITHUB_ENV"
+    - name: Update dependencies
+      run: cargo update
     - name: Run tests
       run: cargo test

@@ -13,10 +13,10 @@ char boundary. This adjusted index is then evaluated to determine if the slice i
 be non-empty, and if it is, that's our common prefix/suffix.
 
 An easy optimization for the string implementation is to chunk the two byte slices so they can
-fit into a 128-bit wide vector registor (sse2/neon/simd128), and compare those chunks. Then we
+fit into a 128-bit wide vector register (sse2/neon/simd128), and compare those chunks. Then we
 can multiply the amount of equal chunks we found to the size of our chunks to determine how many
 equivalent bytes the two strings have. After this, we need to check byte-by-byte from where our
-chunks ended to find the final amount of equal bytes in the prefix/suffix.
+chunks ended to determine the total amount of equal bytes in the prefix/suffix.
 In 40 fucking years, when Rust gets specialization, it should be possible to do something similar
 with specialization(s) for the generic `Finder` implementations.
 */

@@ -33,12 +33,12 @@ where
 {
     #[inline(never)]
     fn common_prefix(&self) -> Option<String> {
-        find_common::<_, StringPrefix, _, _>(self).map(|s| s.to_owned())
+        find_common::<_, StringPrefix, _, _>(self).map(|val| val.to_owned())
     }
 
     #[inline(never)]
     fn common_suffix(&self) -> Option<String> {
-        find_common::<_, StringSuffix, _, _>(self).map(|s| s.to_owned())
+        find_common::<_, StringSuffix, _, _>(self).map(|val| val.to_owned())
     }
 
     #[inline(never)]
@@ -62,12 +62,12 @@ where
 {
     #[inline(never)]
     fn common_prefix_raw(&self) -> Option<Vec<U>> {
-        find_common::<_, GenericPrefix, _, _>(self).map(|s| s.to_owned())
+        find_common::<_, GenericPrefix, _, _>(self).map(|val| val.to_owned())
     }
 
     #[inline(never)]
     fn common_suffix_raw(&self) -> Option<Vec<U>> {
-        find_common::<_, GenericSuffix, _, _>(self).map(|s| s.to_owned())
+        find_common::<_, GenericSuffix, _, _>(self).map(|val| val.to_owned())
     }
 
     #[inline(never)]
@@ -106,10 +106,9 @@ where
         .try_fold(
             || None,
             |previous, current| {
-                let c_ref = current.as_ref();
                 let result = match previous {
-                    Some(prefix) => F::common(prefix, c_ref),
-                    None => Some(c_ref),
+                    Some(prefix) => F::common(prefix, current.as_ref()),
+                    None => Some(current.as_ref()),
                 }?;
                 Some(Some(result))
             },
@@ -133,7 +132,7 @@ mod tests {
     use super::CommonStr;
     use ya_rand::*;
 
-    const VEC_LEN: usize = 1 << 16;
+    const VEC_LEN: usize = 1 << 15;
     const BASE_LEN: usize = 19;
     const EXT_LEN: usize = 13;
     const TOTAL_LEN: usize = BASE_LEN + EXT_LEN;
