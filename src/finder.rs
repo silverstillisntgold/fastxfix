@@ -30,10 +30,7 @@ with specialization(s) for the generic `Finder` implementations.
 /// prefixes/suffixes.
 const CHUNK_SIZE: usize = 128 / 8;
 
-pub trait Finder<T: ?Sized> {
-    fn common<'a>(a: &'a T, b: &T) -> Option<&'a T>;
-}
-
+/// Utility trait for counting the amount of equal elements in an iterator.
 trait EqCounter {
     fn count_eq(self) -> usize;
 }
@@ -47,6 +44,10 @@ where
     fn count_eq(self) -> usize {
         self.take_while(|(a, b)| a.eq(b)).count()
     }
+}
+
+pub trait Finder<T: ?Sized> {
+    fn common<'a>(a: &'a T, b: &T) -> Option<&'a T>;
 }
 
 pub struct StringPrefix;

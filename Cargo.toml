@@ -1,7 +1,13 @@
 [package]
 name = "fastxfix"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
+description = ""
+documentation = ""
+repository = ""
+categories = []
+keywords = []
+license = "MIT"
 
 [dependencies]
 rayon = "1.10"

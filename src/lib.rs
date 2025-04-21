@@ -15,6 +15,7 @@ pub trait CommonStr {
     fn common_suffix_len(&self) -> Option<NonZeroUsize>;
 }
 
+/// Trait for finding the longest common prefix/suffix of any 2D type.
 pub trait CommonRaw<T> {
     /// Returns the longest common prefix of all referenced data.
     fn common_prefix_raw(&self) -> Option<Vec<T>>;
@@ -88,7 +89,7 @@ where
 /// type constraints laid out by rayon.
 ///
 /// The core idea is to, for each pair of referenced values, compute the
-/// result of `Finder::common` and pass that result along to be one of
+/// result of [`Finder::common`] and pass it along to be one of
 /// the values in the next pair. At any point, that result might be `None`,
 /// (there was no common prefix/suffix), and the routine will terminate
 /// as soon as rayon is able to halt execution.
@@ -130,6 +131,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::CommonStr;
+    use std::iter::repeat_with;
     use ya_rand::*;
 
     const VEC_LEN: usize = 1 << 15;
@@ -139,6 +141,12 @@ mod tests {
 
     #[test]
     fn miscellaneous() {
+        let input = ["just a single entry"];
+        let prefix = input.common_prefix().unwrap();
+        assert_eq!(prefix, input[0]);
+        let suffix = input.common_suffix().unwrap();
+        assert_eq!(suffix, input[0]);
+
         let input = ["foobar", "fooqux", "foodle", "fookys"];
         let prefix = input.common_prefix().unwrap();
         assert_eq!(prefix, "foo");
@@ -291,7 +299,7 @@ mod tests {
     where
         F: FnMut() -> char,
     {
-        core::iter::repeat_with(f).take(SIZE).collect()
+        repeat_with(f).take(SIZE).collect()
     }
 
     #[inline(always)]
