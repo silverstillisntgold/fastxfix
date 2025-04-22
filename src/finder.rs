@@ -1,10 +1,8 @@
 /*!
-Contains the core `Finder` trait and concrete implementation for generic prefix/suffix lookup,
-as well as a specialized implementation for strings. Strings need to be handled seperately
-because Rust strings use UTF-8 encoding, so just comparing byte by byte wouldn't work correctly
-for all cases. There are many instances where such an approach might exhibit correct behavior
-(strings which contain only ASCII values is an obvious one), but such an approach may quickly
-devolve into UB when encountering a string where byte-equality ends half-way through a valid char.
+Contains the core `Finder` trait and concrete implementations for generic prefix/suffix lookup,
+as well as specialized implementations for strings. Strings need to be handled seperately
+because Rust strings use UTF-8 encoding, so just comparing byte-by-byte wouldn't work correctly
+for all cases.
 
 The approach I use to solve this issue is very simple. We treat the two strings as byte slices,
 then find the amount of bytes they have in common. We then treat this value as an index
@@ -14,9 +12,10 @@ be non-empty, and if it is, that's our common prefix/suffix.
 
 An easy optimization for the string implementation is to chunk the two byte slices so they can
 fit into a 128-bit wide vector register (sse2/neon/simd128), and compare those chunks. Then we
-can multiply the amount of equal chunks we found to the size of our chunks to determine how many
+can multiply the amount of equal chunks we find to the size of our chunks to determine how many
 equivalent bytes the two strings have. After this, we need to check byte-by-byte from where our
 chunks ended to determine the total amount of equal bytes in the prefix/suffix.
+
 In 40 fucking years, when Rust gets specialization, it should be possible to do something similar
 with specialization(s) for the generic `Finder` implementations.
 */
@@ -30,7 +29,8 @@ with specialization(s) for the generic `Finder` implementations.
 /// prefixes/suffixes.
 const CHUNK_SIZE: usize = 128 / 8;
 
-/// Utility trait for counting the amount of equal elements in an iterator.
+/// Utility trait for counting the amount of equal elements
+/// in an iterator of paired elements.
 trait EqCounter {
     fn count_eq(self) -> usize;
 }
@@ -40,7 +40,7 @@ where
     T: Iterator<Item = (U, U)>,
     U: Eq,
 {
-    #[inline(always)]
+    #[inline]
     fn count_eq(self) -> usize {
         self.take_while(|(a, b)| a.eq(b)).count()
     }

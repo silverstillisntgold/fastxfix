@@ -130,7 +130,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::CommonStr;
+    use super::{CommonRaw, CommonStr};
     use std::iter::repeat_with;
     use ya_rand::*;
 
@@ -140,7 +140,7 @@ mod tests {
     const TOTAL_LEN: usize = BASE_LEN + EXT_LEN;
 
     #[test]
-    fn miscellaneous() {
+    fn misc() {
         let input = ["just a single entry"];
         let prefix = input.common_prefix().unwrap();
         assert_eq!(prefix, input[0]);
@@ -266,6 +266,11 @@ mod tests {
         assert_eq!(base, suffix);
     }
 
+    #[inline]
+    fn random_ascii(rng: &mut SecureRng) -> char {
+        rng.bits(7) as u8 as char
+    }
+
     #[test]
     fn prefix_char() {
         let mut rng = new_rng_secure();
@@ -294,20 +299,7 @@ mod tests {
         assert_eq!(base, suffix);
     }
 
-    #[inline(always)]
-    fn new_string_with<const SIZE: usize, F>(f: F) -> String
-    where
-        F: FnMut() -> char,
-    {
-        repeat_with(f).take(SIZE).collect()
-    }
-
-    #[inline(always)]
-    fn random_ascii(rng: &mut SecureRng) -> char {
-        rng.bits(7) as u8 as char
-    }
-
-    #[inline(always)]
+    #[inline]
     fn random_char(rng: &mut SecureRng) -> char {
         loop {
             // 2^21 is the smallest power-of-two value outside of
@@ -318,5 +310,49 @@ mod tests {
                 None => continue,
             }
         }
+    }
+
+    #[inline]
+    fn new_string_with<const SIZE: usize, F>(f: F) -> String
+    where
+        F: FnMut() -> char,
+    {
+        repeat_with(f).take(SIZE).collect()
+    }
+
+    #[test]
+    fn prefix_generic() {
+        let mut rng = new_rng_secure();
+        let base = new_vec_with::<BASE_LEN, _>(|| rng.u64());
+        let mut nested = vec![Vec::with_capacity(TOTAL_LEN); VEC_LEN];
+        nested.iter_mut().for_each(|cur| {
+            let ext = new_vec_with::<EXT_LEN, _>(|| rng.u64());
+            cur.extend_from_slice(&base);
+            cur.extend_from_slice(&ext);
+        });
+        let prefix = nested.common_prefix_raw().unwrap();
+        assert_eq!(base, prefix);
+    }
+
+    #[test]
+    fn suffix_generic() {
+        let mut rng = new_rng_secure();
+        let base = new_vec_with::<BASE_LEN, _>(|| rng.u64());
+        let mut nested = vec![Vec::with_capacity(TOTAL_LEN); VEC_LEN];
+        nested.iter_mut().for_each(|cur| {
+            let ext = new_vec_with::<EXT_LEN, _>(|| rng.u64());
+            cur.extend_from_slice(&ext);
+            cur.extend_from_slice(&base);
+        });
+        let prefix = nested.common_suffix_raw().unwrap();
+        assert_eq!(base, prefix);
+    }
+
+    #[inline]
+    fn new_vec_with<const SIZE: usize, F>(f: F) -> Vec<u64>
+    where
+        F: FnMut() -> u64,
+    {
+        repeat_with(f).take(SIZE).collect()
     }
 }
