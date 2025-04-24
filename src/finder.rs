@@ -4,25 +4,26 @@ as well as specialized implementations for strings. Strings need to be handled s
 because Rust strings use UTF-8 encoding, so just comparing byte-by-byte wouldn't work correctly
 for all cases.
 
-The approach I use to solve this issue is very simple. We treat the two strings as byte slices,
-then find the amount of bytes they have in common. We then treat this value as an index
-into the `a` byte slice, and feed it into a loop to adjust the index until it lies on a valid
-char boundary. This adjusted index is then evaluated to determine if the slice it creates would
+The approach I use to solve this issue is very simple. We initially treat the two strings as byte
+slices and find the amount of bytes they have in common. We then treat this value as an index
+into the first of the two byte slices, and feed it into a loop to adjust the index until it lies on a
+valid char boundary. This adjusted index is then evaluated to determine if the slice it creates would
 be non-empty, and if it is, that's our common prefix/suffix.
 
-An easy optimization for the string implementation is to chunk the two byte slices so they can
+An easy optimization we can implement for this approach is to chunk the two byte slices so they can
 fit into a 128-bit wide vector register (sse2/neon/simd128), and compare those chunks. Then we
 can multiply the amount of equal chunks we find to the size of our chunks to determine how many
-equivalent bytes the two strings have. After this, we need to check byte-by-byte from where our
-chunks ended to determine the total amount of equal bytes in the prefix/suffix.
+equivalent bytes the two strings have. After this, we just check byte-by-byte from where our
+equal chunks ended to determine the total amount of equal consecutive bytes in the prefix/suffix,
+and now we have an index which can be adjusted to the nearest char boundary and used for slicing.
 
-In 40 fucking years, when Rust gets specialization, it should be possible to do something similar
-with specialization(s) for the generic `Finder` implementations.
+In 69 years, when Rust finally gets specialization, it should be possible to do something
+similar with specialization(s) for the generic `Finder` implementations.
 */
 
 /// Equivalent to `__m128i::BITS` / `u8::BITS`. This allows the
 /// string prefix/suffix methods to autovectorize their operation,
-/// providing a 50%+ speed increase (on my machine).
+/// which provides a >50%+ speed increase on my machine.
 ///
 /// Testing suggests that this doesn't scale all that well to larger
 /// vector registers, even in collections containing relatively long
@@ -102,10 +103,7 @@ impl Finder<str> for StringSuffix {
 }
 
 pub struct GenericPrefix;
-impl<T> Finder<[T]> for GenericPrefix
-where
-    T: Eq,
-{
+impl<T: Eq> Finder<[T]> for GenericPrefix {
     fn common<'a>(a: &'a [T], b: &[T]) -> Option<&'a [T]> {
         let a_iter = a.into_iter();
         let b_iter = b.into_iter();
@@ -118,10 +116,7 @@ where
 }
 
 pub struct GenericSuffix;
-impl<T> Finder<[T]> for GenericSuffix
-where
-    T: Eq,
-{
+impl<T: Eq> Finder<[T]> for GenericSuffix {
     fn common<'a>(a: &'a [T], b: &[T]) -> Option<&'a [T]> {
         let a_iter = a.into_iter().rev();
         let b_iter = b.into_iter().rev();

@@ -4,26 +4,52 @@ use finder::*;
 use rayon::prelude::*;
 use std::num::NonZeroUsize;
 
+/// Trait for finding the longest common `String` prefix/suffix of an 2D type.
+///
+/// Correctly handles the UTF-8 encoding of Rust's `String` type. If you would prefer
+/// to compare only the raw bytes, prefer the methods from the [`CommonRaw`] trait.
 pub trait CommonStr {
     /// Returns the longest common prefix of all referenced strings.
+    ///
+    /// Returns `None` when there is no common prefix.
     fn common_prefix(&self) -> Option<String>;
+
     /// Returns the longest common suffix of all referenced strings.
+    ///
+    /// Returns `None` when there is no common suffix.
     fn common_suffix(&self) -> Option<String>;
+
     /// Returns the length of the longest common prefix of all referenced strings.
+    ///
+    /// Returns `None` instead of 0 when there is no common prefix.
     fn common_prefix_len(&self) -> Option<NonZeroUsize>;
+
     /// Returns the length of the longest common suffix of all referenced strings.
+    ///
+    /// Return `None` instead of 0 when there is no common suffix.
     fn common_suffix_len(&self) -> Option<NonZeroUsize>;
 }
 
-/// Trait for finding the longest common prefix/suffix of any 2D type.
+/// Trait for finding the longest common raw prefix/suffix of any 2D type.
 pub trait CommonRaw<T> {
     /// Returns the longest common prefix of all referenced data.
+    ///
+    /// Returns `None` when there is no common prefix.
     fn common_prefix_raw(&self) -> Option<Vec<T>>;
+
     /// Returns the longest common suffix of all referenced data.
+    ///
+    /// Return `None` when there is no common suffix.
     fn common_suffix_raw(&self) -> Option<Vec<T>>;
+
     /// Returns the length of the longest common prefix of all referenced data.
+    ///
+    /// Returns `None` instead of 0 when there is not common prefix.
     fn common_prefix_raw_len(&self) -> Option<NonZeroUsize>;
+
     /// Returns the length of the longest common suffix of all referenced data.
+    ///
+    /// Returns `None` instead of 0 when there is no common suffix.
     fn common_suffix_raw_len(&self) -> Option<NonZeroUsize>;
 }
 
@@ -107,9 +133,10 @@ where
         .try_fold(
             || None,
             |previous, current| {
+                let cur_ref = current.as_ref();
                 let result = match previous {
-                    Some(prefix) => F::common(prefix, current.as_ref()),
-                    None => Some(current.as_ref()),
+                    Some(prefix) => F::common(prefix, cur_ref),
+                    None => Some(cur_ref),
                 }?;
                 Some(Some(result))
             },

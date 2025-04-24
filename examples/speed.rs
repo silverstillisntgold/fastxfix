@@ -1,7 +1,8 @@
 use fastxfix::*;
 use ya_rand::*;
 
-const COMMON: &str = "愛 This is the common SHITE xD 愛";
+// This is intentially 34 ascii characters long.
+const COMMON: &str = "this is the common SHITE xD wowowo";
 const SIZES: [usize; 11] = [
     1 << 14,
     1 << 15,
@@ -17,6 +18,7 @@ const SIZES: [usize; 11] = [
 ];
 
 fn main() {
+    // Initialize global threadpool.
     rayon::join(|| (), || ());
     println!("starting program");
     run_it_p();
