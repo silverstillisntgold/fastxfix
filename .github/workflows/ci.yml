@@ -10,15 +10,12 @@ jobs:
              ubuntu-24.04-arm,
              ubuntu-latest,
              windows-latest]
-        toolchain: [nightly, stable]
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: ${{ matrix.toolchain }}
+      uses: dtolnay/rust-toolchain@stable
     - name: Enable full CPU feature set
       run: echo "RUSTFLAGS=-C target-cpu=native" >> "$GITHUB_ENV"
     - name: Update dependencies

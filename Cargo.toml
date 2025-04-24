@@ -8,9 +8,10 @@ repository = ""
 categories = []
 keywords = []
 license = "MIT"
+rust-version = "1.85"
 
 [dependencies]
 rayon = "1.10"
 
 [dev-dependencies]
-ya-rand = "1"
+ya-rand = "1.1"
