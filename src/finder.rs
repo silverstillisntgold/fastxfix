@@ -26,8 +26,8 @@ similar with specialization(s) for the generic `Finder` implementations.
 /// which provides a >50%+ speed increase on my machine.
 ///
 /// Testing suggests that this doesn't scale all that well to larger
-/// vector registers, even in collections containing relatively long
-/// prefixes/suffixes.
+/// vector registers, even in examples containing relatively long
+/// common prefixes/suffixes.
 const CHUNK_SIZE: usize = 128 / 8;
 
 /// Utility trait for counting the amount of equal elements

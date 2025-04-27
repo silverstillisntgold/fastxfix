@@ -1,4 +1,4 @@
-use fastxfix::*;
+use fastxfix::CommonStr;
 use ya_rand::*;
 
 // This is intentially 34 ascii characters long.
@@ -18,9 +18,8 @@ const SIZES: [usize; 11] = [
 ];
 
 fn main() {
-    // Initialize global threadpool.
+    // Initialize rayon's global threadpool.
     rayon::join(|| (), || ());
-    println!("starting program");
     run_it_p();
     run_it_s();
 }
@@ -80,9 +79,9 @@ where
     F: FnOnce() -> T,
 {
     let start = std::time::Instant::now();
-    let res = func();
+    let result = func();
     let time_delta = std::time::Instant::now()
         .duration_since(start)
         .as_secs_f64();
-    (res, time_delta)
+    (result, time_delta)
 }

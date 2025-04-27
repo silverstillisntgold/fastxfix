@@ -1,13 +1,30 @@
+/*!
+# FastXFix
+
+Have you ever wanted to find the longest common prefix/suffix of a collection of `String`
+values (or any other comparable data type) at ridiculous speed? Well now you can :D
+
+Use [`CommonStr`] when you expect the LCP/LCS to be a `String`, and use [`CommonRaw`] when
+you expect it to be `Vec<T>`.
+
+Do not use `CommonRaw` when you just want the underlying bytes of
+an LCP/LCS of a `String`. `CommonStr` is specifically optimized for strings, and should always
+outperform `CommonRaw`, even when the underlying data is pure ASCII.
+
+`*_len` methods are provided for when you expect the LCP/LCS to be particularly long and don't
+want to allocate for it.
+*/
+
 mod finder;
 
 use finder::*;
 use rayon::prelude::*;
 use std::num::NonZeroUsize;
 
-/// Trait for finding the longest common `String` prefix/suffix of an 2D type.
+/// Trait for finding the longest common `String` prefix/suffix of any 2D type.
 ///
-/// Correctly handles the UTF-8 encoding of Rust's `String` type. If you would prefer
-/// to compare only the raw bytes, prefer the methods from the [`CommonRaw`] trait.
+/// Works on any collection who's inner type implements [`AsRef`] on [`str`].
+/// The collection itself must implement [`rayon::iter::IntoParallelIterator`].
 pub trait CommonStr {
     /// Returns the longest common prefix of all referenced strings.
     ///
@@ -26,11 +43,15 @@ pub trait CommonStr {
 
     /// Returns the length of the longest common suffix of all referenced strings.
     ///
-    /// Return `None` instead of 0 when there is no common suffix.
+    /// Returns `None` instead of 0 when there is no common suffix.
     fn common_suffix_len(&self) -> Option<NonZeroUsize>;
 }
 
 /// Trait for finding the longest common raw prefix/suffix of any 2D type.
+///
+/// Works on any collection who's inner type implements [`AsRef`] on `T`,
+/// where `T` implements [`Clone`], [`Eq`], and [`Sync`].
+/// The collection itself must implement [`rayon::iter::IntoParallelIterator`].
 pub trait CommonRaw<T> {
     /// Returns the longest common prefix of all referenced data.
     ///
@@ -39,12 +60,12 @@ pub trait CommonRaw<T> {
 
     /// Returns the longest common suffix of all referenced data.
     ///
-    /// Return `None` when there is no common suffix.
+    /// Returns `None` when there is no common suffix.
     fn common_suffix_raw(&self) -> Option<Vec<T>>;
 
     /// Returns the length of the longest common prefix of all referenced data.
     ///
-    /// Returns `None` instead of 0 when there is not common prefix.
+    /// Returns `None` instead of 0 when there is no common prefix.
     fn common_prefix_raw_len(&self) -> Option<NonZeroUsize>;
 
     /// Returns the length of the longest common suffix of all referenced data.
@@ -60,24 +81,24 @@ where
 {
     #[inline(never)]
     fn common_prefix(&self) -> Option<String> {
-        find_common::<_, StringPrefix, _, _>(self).map(|val| val.to_owned())
+        find_common::<_, StringPrefix, _, _>(self).map(|s| s.to_owned())
     }
 
     #[inline(never)]
     fn common_suffix(&self) -> Option<String> {
-        find_common::<_, StringSuffix, _, _>(self).map(|val| val.to_owned())
+        find_common::<_, StringSuffix, _, _>(self).map(|s| s.to_owned())
     }
 
     #[inline(never)]
     fn common_prefix_len(&self) -> Option<NonZeroUsize> {
         find_common::<_, StringPrefix, _, _>(self)
-            .map(|val| unsafe { NonZeroUsize::new_unchecked(val.len()) })
+            .map(|s| unsafe { NonZeroUsize::new_unchecked(s.len()) })
     }
 
     #[inline(never)]
     fn common_suffix_len(&self) -> Option<NonZeroUsize> {
         find_common::<_, StringSuffix, _, _>(self)
-            .map(|val| unsafe { NonZeroUsize::new_unchecked(val.len()) })
+            .map(|s| unsafe { NonZeroUsize::new_unchecked(s.len()) })
     }
 }
 
@@ -89,24 +110,24 @@ where
 {
     #[inline(never)]
     fn common_prefix_raw(&self) -> Option<Vec<U>> {
-        find_common::<_, GenericPrefix, _, _>(self).map(|val| val.to_owned())
+        find_common::<_, GenericPrefix, _, _>(self).map(|v| v.to_owned())
     }
 
     #[inline(never)]
     fn common_suffix_raw(&self) -> Option<Vec<U>> {
-        find_common::<_, GenericSuffix, _, _>(self).map(|val| val.to_owned())
+        find_common::<_, GenericSuffix, _, _>(self).map(|v| v.to_owned())
     }
 
     #[inline(never)]
     fn common_prefix_raw_len(&self) -> Option<NonZeroUsize> {
         find_common::<_, GenericPrefix, _, _>(self)
-            .map(|val| unsafe { NonZeroUsize::new_unchecked(val.len()) })
+            .map(|v| unsafe { NonZeroUsize::new_unchecked(v.len()) })
     }
 
     #[inline(never)]
     fn common_suffix_raw_len(&self) -> Option<NonZeroUsize> {
         find_common::<_, GenericSuffix, _, _>(self)
-            .map(|val| unsafe { NonZeroUsize::new_unchecked(val.len()) })
+            .map(|v| unsafe { NonZeroUsize::new_unchecked(v.len()) })
     }
 }
 
