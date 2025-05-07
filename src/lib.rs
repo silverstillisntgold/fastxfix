@@ -189,6 +189,12 @@ mod tests {
 
     #[test]
     fn misc() {
+        let input: [String; 0] = [];
+        let prefix = input.common_prefix();
+        assert_eq!(prefix, None);
+        let suffix = input.common_suffix();
+        assert_eq!(suffix, None);
+
         let input = ["just a single entry"];
         let prefix = input.common_prefix().unwrap();
         assert_eq!(prefix, input[0]);

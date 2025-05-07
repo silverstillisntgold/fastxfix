@@ -1,6 +1,6 @@
 [package]
 name = "fastxfix"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2024"
 description = "Extremely fast prefix/suffix finder for any 2D data type"
 documentation = "https://docs.rs/fastxfix"
@@ -8,7 +8,6 @@ repository = "https://github.com/silverstillisntgold/fastxfix"
 categories = ["algorithms"]
 keywords = ["parallelism", "prefix", "simd", "suffix"]
 license = "MIT"
-rust-version = "1.85"
 
 [package.metadata.docs.rs]
 targets = ["x86_64-unknown-linux-gnu"]
