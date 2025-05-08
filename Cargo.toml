@@ -16,4 +16,4 @@ targets = ["x86_64-unknown-linux-gnu"]
 rayon = "1.10"
 
 [dev-dependencies]
-ya-rand = "1.1"
+ya-rand = "1.2"
