@@ -1,8 +1,7 @@
 /*!
 Contains the core `Finder` trait and concrete implementations for generic prefix/suffix lookup,
 as well as specialized implementations for strings. Strings need to be handled seperately
-because Rust strings use UTF-8 encoding, so just comparing byte-by-byte wouldn't work correctly
-for all cases.
+because Rust strings use UTF-8 encoding, which requires specially handling to ensure correctness.
 
 The approach I use to solve this issue is very simple. We initially treat the two strings as byte
 slices and find the amount of bytes they have in common. We then treat this value as an index

@@ -1,8 +1,7 @@
 use fastxfix::CommonStr;
 use ya_rand::*;
 
-// This is intentially 34 ascii characters long.
-const COMMON: &str = "this is the common SHITE xD wowowo";
+const COMMON: &str = "this is the common SHITE xD wowow";
 const SIZES: [usize; 11] = [
     1 << 14,
     1 << 15,

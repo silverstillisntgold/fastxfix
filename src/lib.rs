@@ -7,9 +7,9 @@ values (or any other comparable data type) at ridiculous speed? Well now you can
 Use [`CommonStr`] when you expect the LCP/LCS to be a `String`, and use [`CommonRaw`] when
 you expect it to be `Vec<T>`.
 
-Do not use `CommonRaw` when you just want the underlying bytes of
-an LCP/LCS of a `String`. `CommonStr` is specifically optimized for strings, and should always
-outperform `CommonRaw`, even when the underlying data is pure ASCII.
+Do not use `CommonRaw` when you just want the underlying bytes of an LCP/LCS of a `String`.
+`CommonStr` is specifically optimized for strings, and should always outperform `CommonRaw`,
+even when the underlying data is pure ASCII.
 
 `*_len` methods are provided for when you expect the LCP/LCS to be particularly long and don't
 want to allocate for it.
