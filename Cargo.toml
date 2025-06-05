@@ -1,6 +1,6 @@
 [package]
 name = "fastxfix"
-version = "0.1.3"
+version = "0.2.0"
 edition = "2024"
 description = "Extremely fast prefix/suffix finder for any 2D data type"
 documentation = "https://docs.rs/fastxfix"
