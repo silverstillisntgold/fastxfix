@@ -1,4 +1,5 @@
 use fastxfix::CommonStr;
+use std::hint::black_box;
 use ya_rand::*;
 
 const COMMON: &str = "this is the common SHITE xD wowow";
@@ -18,7 +19,7 @@ const SIZES: [usize; 11] = [
 
 fn main() {
     // Initialize rayon's global threadpool.
-    rayon::join(|| (), || ());
+    rayon::join(|| black_box(()), || black_box(()));
     run_it_p();
     run_it_s();
 }

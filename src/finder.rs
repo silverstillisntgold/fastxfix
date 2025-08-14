@@ -1,7 +1,7 @@
 /*!
-Contains the core `Finder` trait and concrete implementations for generic prefix/suffix lookup,
+Contains the core [`Finder`] trait and concrete implementations for generic prefix/suffix lookup,
 as well as specialized implementations for strings. Strings need to be handled seperately
-because Rust strings use UTF-8 encoding, which requires specially handling to ensure correctness.
+because Rust strings use UTF-8 encoding, which requires special care to ensure correctness.
 
 The approach I use to solve this issue is very simple. We initially treat the two strings as byte
 slices and find the amount of bytes they have in common. We then treat this value as an index
@@ -15,9 +15,6 @@ can multiply the amount of equal chunks we find to the size of our chunks to det
 equivalent bytes the two strings have. After this, we just check byte-by-byte from where our
 equal chunks ended to determine the total amount of equal consecutive bytes in the prefix/suffix,
 and now we have an index which can be adjusted to the nearest char boundary and used for slicing.
-
-In 69 years, when Rust finally gets specialization, it should be possible to do something
-similar with specialization(s) for the generic `Finder` implementations.
 */
 
 /// Equivalent to `__m128i::BITS` / `u8::BITS`. This allows the
@@ -29,8 +26,6 @@ similar with specialization(s) for the generic `Finder` implementations.
 /// common prefixes/suffixes.
 const CHUNK_SIZE: usize = 128 / 8;
 
-/// Utility trait for counting the amount of equal elements
-/// in an iterator of paired elements.
 trait EqCounter {
     fn count_eq(self) -> usize;
 }
@@ -40,6 +35,7 @@ where
     T: Iterator<Item = (U, U)>,
     U: Eq,
 {
+    /// Counts the amount of equal elements in an iterator of paired elements.
     #[inline]
     fn count_eq(self) -> usize {
         self.take_while(|(a, b)| a.eq(b)).count()
@@ -68,7 +64,7 @@ impl Finder<str> for StringPrefix {
         while !a.is_char_boundary(end) {
             end -= 1;
         }
-        match end != 0 {
+        match end > 0 {
             true => Some(unsafe { a.get_unchecked(..end) }),
             false => None,
         }
@@ -94,7 +90,7 @@ impl Finder<str> for StringSuffix {
         while !a.is_char_boundary(begin) {
             begin += 1;
         }
-        match begin != a.len() {
+        match begin < a.len() {
             true => Some(unsafe { a.get_unchecked(begin..) }),
             false => None,
         }
@@ -107,7 +103,7 @@ impl<T: Eq> Finder<[T]> for GenericPrefix {
         let a_iter = a.into_iter();
         let b_iter = b.into_iter();
         let end = a_iter.zip(b_iter).count_eq();
-        match end != 0 {
+        match end > 0 {
             true => Some(unsafe { a.get_unchecked(..end) }),
             false => None,
         }
@@ -121,7 +117,7 @@ impl<T: Eq> Finder<[T]> for GenericSuffix {
         let b_iter = b.into_iter().rev();
         let end = a_iter.zip(b_iter).count_eq();
         let begin = a.len() - end;
-        match begin != a.len() {
+        match begin < a.len() {
             true => Some(unsafe { a.get_unchecked(begin..) }),
             false => None,
         }

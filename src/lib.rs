@@ -1,19 +1,37 @@
 /*!
 # FastXFix
 
-Have you ever wanted to find the longest common prefix/suffix of a collection of `String`
-values (or any other comparable data type) at ridiculous speed? Well now you can :D
+A small utility crate for finding the longest common prefix/suffix of 2D collections at
+absolutely insane speeds, made possible by [`rayon`] and SIMD optimizations.
 
-Use [`CommonStr`] when you expect the LCP/LCS to be a `String`, and use [`CommonRaw`] when
-you expect it to be `Vec<T>`.
+"2D collections" refers to arrangements like `Vec<T>`, `HashSet<T>`, or `LinkedList<T>`.
+When `T` implements `AsRef<str>`, you'll be able to use the methods of [`CommonStr`] on it.
+When `T` implements `AsRef<&[U]>` (meaning that `T` is a slice of some kind) then you'll have
+access to the methods of [`CommonRaw`]. These two conditions are not mutually exclusive, so
+it's up to the user to ensure they're using the method that best coincides with what they're
+trying to accomplish.
 
-Do not use `CommonRaw` when you just want the underlying bytes of an LCP/LCS of a `String`.
-`CommonStr` is specifically optimized for strings, and should always outperform `CommonRaw`,
-even when the underlying data is pure ASCII.
+If you're trying to extract information about strings, **always** prefer using [`CommonStr`]
+methods: they are specifically optimized for handling rust's UTF-8 encoded strings.
 
-`*_len` methods are provided for when you expect the LCP/LCS to be particularly long and don't
-want to allocate for it.
+## Examples
+
+```
+use fastxfix::CommonStr;
+
+let s1 = "wowie_this_is_a_string".to_string();
+let s2 = "wowie_this_is_another_string_".to_string();
+
+let v = vec![s1, s2];
+let common_prefix = v.common_prefix().expect("we know there is a common prefix");
+let len = v.common_prefix_len().expect("we know there is a common prefix");
+assert!(common_prefix.len() == len.get());
+// The strings have no common suffix.
+assert!(v.common_suffix_len() == None);
+```
 */
+
+#![deny(missing_docs)]
 
 mod finder;
 
@@ -22,9 +40,6 @@ use rayon::prelude::*;
 use std::num::NonZeroUsize;
 
 /// Trait for finding the longest common `String` prefix/suffix of any 2D type.
-///
-/// Works on any collection who's inner type implements [`AsRef`] on [`str`].
-/// The collection itself must implement [`rayon::iter::IntoParallelIterator`].
 pub trait CommonStr {
     /// Returns the longest common prefix of all referenced strings.
     ///
@@ -61,23 +76,19 @@ pub trait CommonStr {
     }
 
     /// Returns a reference to the string which has the longest common
-    /// prefix of all the collections strings.
+    /// prefix of all strings in the collection.
     ///
     /// Returns `None` when there is no common prefix.
     fn common_prefix_ref(&self) -> Option<&str>;
 
     /// Returns a reference to the string which has the longest common
-    /// suffix of all the collections strings.
+    /// suffix of all strings in the collection.
     ///
     /// Returns `None` when there is no common suffix.
     fn common_suffix_ref(&self) -> Option<&str>;
 }
 
 /// Trait for finding the longest common raw prefix/suffix of any 2D type.
-///
-/// Works on any collection who's inner type implements [`AsRef`] on `T`,
-/// where `T` implements [`Clone`], [`Eq`], and [`Sync`].
-/// The collection itself must implement [`rayon::iter::IntoParallelIterator`].
 pub trait CommonRaw<T: Clone> {
     /// Returns the longest common prefix of all referenced data.
     ///
@@ -114,13 +125,13 @@ pub trait CommonRaw<T: Clone> {
     }
 
     /// Returns a reference to the element which has the longest common
-    /// prefix of all the collections elements.
+    /// prefix of all data in the collection.
     ///
     /// Returns `None` when there is no common prefix.
     fn common_prefix_raw_ref(&self) -> Option<&[T]>;
 
     /// Returns a reference to the element which has the longest common
-    /// suffix of all the collections elements.
+    /// suffix of all data in the collection.
     ///
     /// Returns `None` when there is no common suffix.
     fn common_suffix_raw_ref(&self) -> Option<&[T]>;
@@ -166,7 +177,7 @@ where
 /// The core idea is to, for each pair of referenced values, compute the
 /// result of [`Finder::common`] and pass it along to be one of
 /// the values in the next pair. At any point, that result might be `None`,
-/// (there was no common prefix/suffix), and the routine will terminate
+/// (there was no common prefix/suffix), causing the routine to terminate
 /// as soon as rayon is able to halt execution.
 #[inline(never)]
 fn find_common<C: ?Sized, F, T, U>(collection: &C) -> Option<&U>
@@ -187,8 +198,8 @@ where
                 let result = match previous {
                     Some(prefix) => F::common(prefix, cur_ref),
                     None => Some(cur_ref),
-                }?;
-                Some(Some(result))
+                };
+                Some(result)
             },
         )
         .try_reduce(
@@ -198,8 +209,8 @@ where
                     (Some(a), Some(b)) => F::common(a, b),
                     (Some(c), None) | (None, Some(c)) => Some(c),
                     (None, None) => None,
-                }?;
-                Some(Some(result))
+                };
+                Some(result)
             },
         )
         .flatten()
@@ -208,7 +219,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::{CommonRaw, CommonStr};
-    use std::iter::repeat_with;
+    use std::iter;
     use ya_rand::*;
 
     const VEC_LEN: usize = 1 << 15;
@@ -400,7 +411,7 @@ mod tests {
     where
         F: FnMut() -> char,
     {
-        repeat_with(f).take(SIZE).collect()
+        iter::repeat_with(f).take(SIZE).collect()
     }
 
     #[test]
@@ -436,6 +447,6 @@ mod tests {
     where
         F: FnMut() -> u64,
     {
-        repeat_with(f).take(SIZE).collect()
+        iter::repeat_with(f).take(SIZE).collect()
     }
 }
