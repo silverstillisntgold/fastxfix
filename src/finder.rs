@@ -57,8 +57,8 @@ impl Finder<str> for StringPrefix {
         let mut end = a_chunks.zip(b_chunks).count_eq();
         end *= CHUNK_SIZE;
 
-        let a_rem = a_bytes.into_iter().skip(end);
-        let b_rem = b_bytes.into_iter().skip(end);
+        let a_rem = a_bytes.iter().skip(end);
+        let b_rem = b_bytes.iter().skip(end);
         end += a_rem.zip(b_rem).count_eq();
 
         while !a.is_char_boundary(end) {
@@ -82,8 +82,8 @@ impl Finder<str> for StringSuffix {
         let mut end = a_chunks.zip(b_chunks).count_eq();
         end *= CHUNK_SIZE;
 
-        let a_rem = a_bytes.into_iter().rev().skip(end);
-        let b_rem = b_bytes.into_iter().rev().skip(end);
+        let a_rem = a_bytes.iter().rev().skip(end);
+        let b_rem = b_bytes.iter().rev().skip(end);
         end += a_rem.zip(b_rem).count_eq();
 
         let mut begin = a.len() - end;
@@ -100,8 +100,8 @@ impl Finder<str> for StringSuffix {
 pub struct GenericPrefix;
 impl<T: Eq> Finder<[T]> for GenericPrefix {
     fn common<'a>(a: &'a [T], b: &[T]) -> Option<&'a [T]> {
-        let a_iter = a.into_iter();
-        let b_iter = b.into_iter();
+        let a_iter = a.iter();
+        let b_iter = b.iter();
         let end = a_iter.zip(b_iter).count_eq();
         match end > 0 {
             true => Some(unsafe { a.get_unchecked(..end) }),
@@ -113,8 +113,8 @@ impl<T: Eq> Finder<[T]> for GenericPrefix {
 pub struct GenericSuffix;
 impl<T: Eq> Finder<[T]> for GenericSuffix {
     fn common<'a>(a: &'a [T], b: &[T]) -> Option<&'a [T]> {
-        let a_iter = a.into_iter().rev();
-        let b_iter = b.into_iter().rev();
+        let a_iter = a.iter().rev();
+        let b_iter = b.iter().rev();
         let end = a_iter.zip(b_iter).count_eq();
         let begin = a.len() - end;
         match begin < a.len() {

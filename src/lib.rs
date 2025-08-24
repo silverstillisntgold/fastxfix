@@ -418,7 +418,7 @@ mod tests {
     fn prefix_generic() {
         let mut rng = new_rng_secure();
         let base = new_vec_with::<BASE_LEN, _>(|| rng.u64());
-        let mut nested = vec![Vec::with_capacity(TOTAL_LEN); VEC_LEN];
+        let mut nested = vec![Vec::new(); VEC_LEN];
         nested.iter_mut().for_each(|cur| {
             let ext = new_vec_with::<EXT_LEN, _>(|| rng.u64());
             cur.extend_from_slice(&base);
@@ -432,7 +432,7 @@ mod tests {
     fn suffix_generic() {
         let mut rng = new_rng_secure();
         let base = new_vec_with::<BASE_LEN, _>(|| rng.u64());
-        let mut nested = vec![Vec::with_capacity(TOTAL_LEN); VEC_LEN];
+        let mut nested = vec![Vec::new(); VEC_LEN];
         nested.iter_mut().for_each(|cur| {
             let ext = new_vec_with::<EXT_LEN, _>(|| rng.u64());
             cur.extend_from_slice(&ext);
