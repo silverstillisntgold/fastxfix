@@ -39,7 +39,7 @@ use finder::*;
 use rayon::prelude::*;
 use std::num::NonZeroUsize;
 
-/// Trait for finding the longest common `String` prefix/suffix of any 2D type.
+/// Trait for finding the longest common [`String`] prefix/suffix of any 2D collection.
 pub trait CommonStr {
     /// Returns the longest common prefix of all referenced strings.
     ///
@@ -88,7 +88,7 @@ pub trait CommonStr {
     fn common_suffix_ref(&self) -> Option<&str>;
 }
 
-/// Trait for finding the longest common raw prefix/suffix of any 2D type.
+/// Trait for finding the longest common raw prefix/suffix of any 2D collection.
 pub trait CommonRaw<T: Clone> {
     /// Returns the longest common prefix of all referenced data.
     ///
@@ -219,13 +219,47 @@ where
 #[cfg(test)]
 mod tests {
     use super::{CommonRaw, CommonStr};
+    use std::hint::black_box;
     use std::iter;
     use ya_rand::*;
 
-    const VEC_LEN: usize = 1 << 15;
     const BASE_LEN: usize = 19;
+    const COMMON: &str = "this is just a simple sentence";
     const EXT_LEN: usize = 13;
     const TOTAL_LEN: usize = BASE_LEN + EXT_LEN;
+    const VEC_LEN: usize = 1 << 15;
+
+    #[test]
+    fn str_prefix_sanity() {
+        let v = black_box(vec![COMMON.to_string(); BASE_LEN]);
+        let common = v.common_prefix_ref().unwrap();
+        assert_eq!(common, COMMON);
+        assert_eq!(common.len(), COMMON.len());
+    }
+
+    #[test]
+    fn str_suffix_sanity() {
+        let v = black_box(vec![COMMON.to_string(); BASE_LEN]);
+        let common = v.common_suffix_ref().unwrap();
+        assert_eq!(common, COMMON);
+        assert_eq!(common.len(), COMMON.len());
+    }
+
+    #[test]
+    fn raw_prefix_sanity() {
+        let v = black_box(vec![COMMON.as_bytes().to_vec(); BASE_LEN]);
+        let common = v.common_prefix_raw_ref().unwrap();
+        assert_eq!(common, COMMON.as_bytes());
+        assert_eq!(common.len(), COMMON.len());
+    }
+
+    #[test]
+    fn raw_suffix_sanity() {
+        let v = black_box(vec![COMMON.as_bytes().to_vec(); BASE_LEN]);
+        let common = v.common_suffix_raw_ref().unwrap();
+        assert_eq!(common, COMMON.as_bytes());
+        assert_eq!(common.len(), COMMON.len());
+    }
 
     #[test]
     fn misc() {

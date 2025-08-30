@@ -35,7 +35,7 @@ where
     T: Iterator<Item = (U, U)>,
     U: Eq,
 {
-    /// Counts the amount of equal elements in an iterator of paired elements.
+    /// Counts the amount of consecutive equal elements in an iterator of paired elements.
     #[inline]
     fn count_eq(self) -> usize {
         self.take_while(|(a, b)| a.eq(b)).count()
