@@ -18,7 +18,7 @@ and now we have an index which can be adjusted to the nearest char boundary and 
 */
 
 /// Equivalent to `__m128i::BITS` / `u8::BITS`. This allows the
-/// string prefix/suffix methods to autovectorize their operation,
+/// string prefix/suffix methods to autovectorize their operations,
 /// which provides a >50%+ speed increase on my machine.
 ///
 /// Testing suggests that this doesn't scale all that well to larger

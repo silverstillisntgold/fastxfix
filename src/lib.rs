@@ -18,16 +18,17 @@ methods: they are specifically optimized for handling rust's UTF-8 encoded strin
 
 ```
 use fastxfix::CommonStr;
+use std::num::NonZeroUsize;
 
 let s1 = "wowie_this_is_a_string".to_string();
 let s2 = "wowie_this_is_another_string_".to_string();
 
 let v = vec![s1, s2];
 let common_prefix = v.common_prefix().expect("we know there is a common prefix");
-let len = v.common_prefix_len().expect("we know there is a common prefix");
+let len: NonZeroUsize = v.common_prefix_len().expect("we know there is a common prefix");
 assert!(common_prefix.len() == len.get());
 // The strings have no common suffix.
-assert!(v.common_suffix_len() == None);
+assert!(v.common_suffix_len().is_none());
 ```
 */
 
@@ -44,7 +45,6 @@ pub trait CommonStr {
     /// Returns the longest common prefix of all referenced strings.
     ///
     /// Returns `None` when there is no common prefix.
-    #[inline]
     fn common_prefix(&self) -> Option<String> {
         self.common_prefix_ref().map(|s| s.to_string())
     }
@@ -52,7 +52,6 @@ pub trait CommonStr {
     /// Returns the longest common suffix of all referenced strings.
     ///
     /// Returns `None` when there is no common suffix.
-    #[inline]
     fn common_suffix(&self) -> Option<String> {
         self.common_suffix_ref().map(|s| s.to_string())
     }
@@ -60,7 +59,6 @@ pub trait CommonStr {
     /// Returns the length of the longest common prefix of all referenced strings.
     ///
     /// Returns `None` instead of 0 when there is no common prefix.
-    #[inline]
     fn common_prefix_len(&self) -> Option<NonZeroUsize> {
         self.common_prefix_ref()
             .map(|s| unsafe { NonZeroUsize::new_unchecked(s.len()) })
@@ -69,7 +67,6 @@ pub trait CommonStr {
     /// Returns the length of the longest common suffix of all referenced strings.
     ///
     /// Returns `None` instead of 0 when there is no common suffix.
-    #[inline]
     fn common_suffix_len(&self) -> Option<NonZeroUsize> {
         self.common_suffix_ref()
             .map(|s| unsafe { NonZeroUsize::new_unchecked(s.len()) })
@@ -93,7 +90,6 @@ pub trait CommonRaw<T: Clone> {
     /// Returns the longest common prefix of all referenced data.
     ///
     /// Returns `None` when there is no common prefix.
-    #[inline]
     fn common_prefix_raw(&self) -> Option<Vec<T>> {
         self.common_prefix_raw_ref().map(|s| s.to_vec())
     }
@@ -101,7 +97,6 @@ pub trait CommonRaw<T: Clone> {
     /// Returns the longest common suffix of all referenced data.
     ///
     /// Returns `None` when there is no common suffix.
-    #[inline]
     fn common_suffix_raw(&self) -> Option<Vec<T>> {
         self.common_suffix_raw_ref().map(|s| s.to_vec())
     }
@@ -109,7 +104,6 @@ pub trait CommonRaw<T: Clone> {
     /// Returns the length of the longest common prefix of all referenced data.
     ///
     /// Returns `None` instead of 0 when there is no common prefix.
-    #[inline]
     fn common_prefix_raw_len(&self) -> Option<NonZeroUsize> {
         self.common_prefix_raw_ref()
             .map(|s| unsafe { NonZeroUsize::new_unchecked(s.len()) })
@@ -118,7 +112,6 @@ pub trait CommonRaw<T: Clone> {
     /// Returns the length of the longest common suffix of all referenced data.
     ///
     /// Returns `None` instead of 0 when there is no common suffix.
-    #[inline]
     fn common_suffix_raw_len(&self) -> Option<NonZeroUsize> {
         self.common_suffix_raw_ref()
             .map(|s| unsafe { NonZeroUsize::new_unchecked(s.len()) })
@@ -142,12 +135,10 @@ where
     for<'a> &'a C: IntoParallelIterator<Item = &'a T>,
     T: AsRef<str> + Sync,
 {
-    #[inline]
     fn common_prefix_ref(&self) -> Option<&str> {
         find_common::<_, StringPrefix, _, _>(self)
     }
 
-    #[inline]
     fn common_suffix_ref(&self) -> Option<&str> {
         find_common::<_, StringSuffix, _, _>(self)
     }
@@ -159,12 +150,10 @@ where
     T: AsRef<[U]> + Sync,
     U: Clone + Eq + Sync,
 {
-    #[inline]
     fn common_prefix_raw_ref(&self) -> Option<&[U]> {
         find_common::<_, GenericPrefix, _, _>(self)
     }
 
-    #[inline]
     fn common_suffix_raw_ref(&self) -> Option<&[U]> {
         find_common::<_, GenericSuffix, _, _>(self)
     }
@@ -179,7 +168,6 @@ where
 /// the values in the next pair. At any point, that result might be `None`,
 /// (there was no common prefix/suffix), causing the routine to terminate
 /// as soon as rayon is able to halt execution.
-#[inline(never)]
 fn find_common<C: ?Sized, F, T, U>(collection: &C) -> Option<&U>
 where
     for<'a> &'a C: IntoParallelIterator<Item = &'a T>,
@@ -213,6 +201,7 @@ where
                 Some(result)
             },
         )
+        // TODO: Some way to avoid needing this flatten?
         .flatten()
 }
 
@@ -394,7 +383,6 @@ mod tests {
         assert_eq!(base, suffix);
     }
 
-    #[inline]
     fn random_ascii(rng: &mut SecureRng) -> char {
         rng.bits(7) as u8 as char
     }
@@ -427,7 +415,6 @@ mod tests {
         assert_eq!(base, suffix);
     }
 
-    #[inline]
     fn random_char(rng: &mut SecureRng) -> char {
         loop {
             // 2^21 is the smallest power-of-two value outside of
@@ -440,7 +427,6 @@ mod tests {
         }
     }
 
-    #[inline]
     fn new_string_with<const SIZE: usize, F>(f: F) -> String
     where
         F: FnMut() -> char,
@@ -476,7 +462,6 @@ mod tests {
         assert_eq!(base, prefix);
     }
 
-    #[inline]
     fn new_vec_with<const SIZE: usize, F>(f: F) -> Vec<u64>
     where
         F: FnMut() -> u64,

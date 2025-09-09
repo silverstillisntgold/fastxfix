@@ -21,14 +21,15 @@ methods: they are specifically optimized for handling rust's UTF-8 encoded strin
 
 ```rust
 use fastxfix::CommonStr;
+use std::num::NonZeroUsize;
 
 let s1 = "wowie_this_is_a_string".to_string();
 let s2 = "wowie_this_is_another_string_".to_string();
 
 let v = vec![s1, s2];
 let common_prefix = v.common_prefix().expect("we know there is a common prefix");
-let len = v.common_prefix_len().expect("we know there is a common prefix");
+let len: NonZeroUsize = v.common_prefix_len().expect("we know there is a common prefix");
 assert!(common_prefix.len() == len.get());
 // The strings have no common suffix.
-assert!(v.common_suffix_len() == None);
+assert!(v.common_suffix_len().is_none());
 ```
