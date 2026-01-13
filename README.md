@@ -1,5 +1,7 @@
 # FastXFix
 
+**This crate is considered feature complete.**
+
 A small utility crate for finding the longest common prefix/suffix of 2D collections at
 absolutely insane speeds, made possible by [`rayon`] and SIMD optimizations.
 

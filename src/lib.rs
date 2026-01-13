@@ -1,6 +1,8 @@
 /*!
 # FastXFix
 
+**This crate is considered feature complete.**
+
 A small utility crate for finding the longest common prefix/suffix of 2D collections at
 absolutely insane speeds, made possible by [`rayon`] and SIMD optimizations.
 
@@ -175,7 +177,7 @@ where
     T: AsRef<U> + Sync,
     U: ?Sized + Sync,
 {
-    // We have to use the `try_*` variants of fold/reduce so we can fail
+    // We need to use the `try_*` variants of fold/reduce so we can fail
     // early when any two items don't have a common prefix/suffix.
     collection
         .into_par_iter()
@@ -183,25 +185,20 @@ where
             || None,
             |previous, current| {
                 let cur_ref = current.as_ref();
-                let result = match previous {
-                    Some(prefix) => F::common(prefix, cur_ref),
-                    None => Some(cur_ref),
-                };
-                Some(result)
+                match previous {
+                    Some(prev) => F::common(prev, cur_ref).map(Some),
+                    None => Some(Some(cur_ref)),
+                }
             },
         )
         .try_reduce(
             || None,
-            |a, b| {
-                let result = match (a, b) {
-                    (Some(a), Some(b)) => F::common(a, b),
-                    (Some(c), None) | (None, Some(c)) => Some(c),
-                    (None, None) => None,
-                };
-                Some(result)
+            |a, b| match (a, b) {
+                (Some(a), Some(b)) => F::common(a, b).map(Some),
+                (Some(common), None) | (None, Some(common)) => Some(Some(common)),
+                (None, None) => None,
             },
         )
-        // TODO: Some way to avoid needing this flatten?
         .flatten()
 }
 
@@ -357,7 +354,7 @@ mod tests {
 
     #[test]
     fn prefix_ascii() {
-        let mut rng = new_rng_secure();
+        let mut rng = new_rng();
         let base = new_string_with::<BASE_LEN, _>(|| random_ascii(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
         strings.iter_mut().for_each(|s| {
@@ -371,7 +368,7 @@ mod tests {
 
     #[test]
     fn suffix_ascii() {
-        let mut rng = new_rng_secure();
+        let mut rng = new_rng();
         let base = new_string_with::<BASE_LEN, _>(|| random_ascii(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN); VEC_LEN];
         strings.iter_mut().for_each(|s| {
@@ -383,13 +380,13 @@ mod tests {
         assert_eq!(base, suffix);
     }
 
-    fn random_ascii(rng: &mut SecureRng) -> char {
+    fn random_ascii(rng: &mut ShiroRng) -> char {
         rng.bits(7) as u8 as char
     }
 
     #[test]
     fn prefix_char() {
-        let mut rng = new_rng_secure();
+        let mut rng = new_rng();
         let base = new_string_with::<BASE_LEN, _>(|| random_char(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN * 4); VEC_LEN];
         strings.iter_mut().for_each(|s| {
@@ -403,7 +400,7 @@ mod tests {
 
     #[test]
     fn suffix_char() {
-        let mut rng = new_rng_secure();
+        let mut rng = new_rng();
         let base = new_string_with::<BASE_LEN, _>(|| random_char(&mut rng));
         let mut strings = vec![String::with_capacity(TOTAL_LEN * 4); VEC_LEN];
         strings.iter_mut().for_each(|s| {
@@ -415,7 +412,7 @@ mod tests {
         assert_eq!(base, suffix);
     }
 
-    fn random_char(rng: &mut SecureRng) -> char {
+    fn random_char(rng: &mut ShiroRng) -> char {
         loop {
             // 2^21 is the smallest power-of-two value outside of
             // the maximum valid UTF-8 character range.
@@ -436,7 +433,7 @@ mod tests {
 
     #[test]
     fn prefix_generic() {
-        let mut rng = new_rng_secure();
+        let mut rng = new_rng();
         let base = new_vec_with::<BASE_LEN, _>(|| rng.u64());
         let mut nested = vec![Vec::new(); VEC_LEN];
         nested.iter_mut().for_each(|cur| {
@@ -450,7 +447,7 @@ mod tests {
 
     #[test]
     fn suffix_generic() {
-        let mut rng = new_rng_secure();
+        let mut rng = new_rng();
         let base = new_vec_with::<BASE_LEN, _>(|| rng.u64());
         let mut nested = vec![Vec::new(); VEC_LEN];
         nested.iter_mut().for_each(|cur| {

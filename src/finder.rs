@@ -15,6 +15,12 @@ can multiply the amount of equal chunks we find to the size of our chunks to det
 equivalent bytes the two strings have. After this, we just check byte-by-byte from where our
 equal chunks ended to determine the total amount of equal consecutive bytes in the prefix/suffix,
 and now we have an index which can be adjusted to the nearest char boundary and used for slicing.
+
+# Safety
+
+All implementations of [`Finder`] use `unsafe` when indexing the final slice/str being returned.
+This indexing is safe because the index itself is directly derived from the minimum length of the two
+slices/strs being compared.
 */
 
 /// Equivalent to `__m128i::BITS` / `u8::BITS`. This allows the
