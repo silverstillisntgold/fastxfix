@@ -70,6 +70,7 @@ impl Finder<str> for StringPrefix {
         while !a.is_char_boundary(end) {
             end -= 1;
         }
+
         match end > 0 {
             true => Some(unsafe { a.get_unchecked(..end) }),
             false => None,
@@ -96,6 +97,7 @@ impl Finder<str> for StringSuffix {
         while !a.is_char_boundary(begin) {
             begin += 1;
         }
+
         match begin < a.len() {
             true => Some(unsafe { a.get_unchecked(begin..) }),
             false => None,

@@ -63,7 +63,7 @@ pub trait CommonStr {
     /// Returns `None` instead of 0 when there is no common prefix.
     fn common_prefix_len(&self) -> Option<NonZeroUsize> {
         self.common_prefix_ref()
-            .map(|s| unsafe { NonZeroUsize::new_unchecked(s.len()) })
+            .and_then(|s| NonZeroUsize::new(s.len()))
     }
 
     /// Returns the length of the longest common suffix of all referenced strings.
@@ -71,7 +71,7 @@ pub trait CommonStr {
     /// Returns `None` instead of 0 when there is no common suffix.
     fn common_suffix_len(&self) -> Option<NonZeroUsize> {
         self.common_suffix_ref()
-            .map(|s| unsafe { NonZeroUsize::new_unchecked(s.len()) })
+            .and_then(|s| NonZeroUsize::new(s.len()))
     }
 
     /// Returns a reference to the string which has the longest common
@@ -108,7 +108,7 @@ pub trait CommonRaw<T: Clone> {
     /// Returns `None` instead of 0 when there is no common prefix.
     fn common_prefix_raw_len(&self) -> Option<NonZeroUsize> {
         self.common_prefix_raw_ref()
-            .map(|s| unsafe { NonZeroUsize::new_unchecked(s.len()) })
+            .and_then(|s| NonZeroUsize::new(s.len()))
     }
 
     /// Returns the length of the longest common suffix of all referenced data.
@@ -116,7 +116,7 @@ pub trait CommonRaw<T: Clone> {
     /// Returns `None` instead of 0 when there is no common suffix.
     fn common_suffix_raw_len(&self) -> Option<NonZeroUsize> {
         self.common_suffix_raw_ref()
-            .map(|s| unsafe { NonZeroUsize::new_unchecked(s.len()) })
+            .and_then(|s| NonZeroUsize::new(s.len()))
     }
 
     /// Returns a reference to the element which has the longest common
@@ -135,7 +135,7 @@ pub trait CommonRaw<T: Clone> {
 impl<C: ?Sized, T> CommonStr for C
 where
     for<'a> &'a C: IntoParallelIterator<Item = &'a T>,
-    T: AsRef<str> + Sync,
+    T: AsRef<str>,
 {
     fn common_prefix_ref(&self) -> Option<&str> {
         find_common::<_, StringPrefix, _, _>(self)
@@ -149,7 +149,7 @@ where
 impl<C: ?Sized, T, U> CommonRaw<U> for C
 where
     for<'a> &'a C: IntoParallelIterator<Item = &'a T>,
-    T: AsRef<[U]> + Sync,
+    T: AsRef<[U]>,
     U: Clone + Eq + Sync,
 {
     fn common_prefix_raw_ref(&self) -> Option<&[U]> {
@@ -161,44 +161,26 @@ where
     }
 }
 
-/// Core function for finding LCP or LCS. It looks a bit involved,
-/// but most of what goes on in here is just to ensure we satisfy the
-/// type constraints laid out by rayon.
+/// Core function for finding LCP or LCS.
 ///
-/// The core idea is to, for each pair of referenced values, compute the
+/// The idea is to, for each pair of referenced values, compute the
 /// result of [`Finder::common`] and pass it along to be one of
 /// the values in the next pair. At any point, that result might be `None`,
 /// (there was no common prefix/suffix), causing the routine to terminate
-/// as soon as rayon is able to halt execution.
+/// as soon as rayon is able to halt execution across it's threadpool.
 fn find_common<C: ?Sized, F, T, U>(collection: &C) -> Option<&U>
 where
     for<'a> &'a C: IntoParallelIterator<Item = &'a T>,
     F: Finder<U>,
-    T: AsRef<U> + Sync,
+    T: AsRef<U>,
     U: ?Sized + Sync,
 {
     // We need to use the `try_*` variants of fold/reduce so we can fail
     // early when any two items don't have a common prefix/suffix.
     collection
         .into_par_iter()
-        .try_fold(
-            || None,
-            |previous, current| {
-                let cur_ref = current.as_ref();
-                match previous {
-                    Some(prev) => F::common(prev, cur_ref).map(Some),
-                    None => Some(Some(cur_ref)),
-                }
-            },
-        )
-        .try_reduce(
-            || None,
-            |a, b| match (a, b) {
-                (Some(a), Some(b)) => F::common(a, b).map(Some),
-                (Some(common), None) | (None, Some(common)) => Some(Some(common)),
-                (None, None) => None,
-            },
-        )
+        .map(|current| Some(current.as_ref()))
+        .try_reduce_with(F::common)
         .flatten()
 }
 
@@ -464,5 +446,16 @@ mod tests {
         F: FnMut() -> u64,
     {
         iter::repeat_with(f).take(SIZE).collect()
+    }
+
+    #[test]
+    fn singleton_empty_len_is_none() {
+        let strings = [""];
+        assert_eq!(strings.common_prefix_len(), None);
+        assert_eq!(strings.common_suffix_len(), None);
+
+        let raw = vec![Vec::<u8>::new()];
+        assert_eq!(raw.common_prefix_raw_len(), None);
+        assert_eq!(raw.common_suffix_raw_len(), None);
     }
 }
