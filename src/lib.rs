@@ -175,8 +175,6 @@ where
     T: AsRef<U>,
     U: ?Sized + Sync,
 {
-    // We need to use the `try_*` variants of fold/reduce so we can fail
-    // early when any two items don't have a common prefix/suffix.
     collection
         .into_par_iter()
         .map(|current| Some(current.as_ref()))
