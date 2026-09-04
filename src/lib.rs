@@ -34,13 +34,13 @@ assert!(v.common_suffix_len().is_none());
 ```
 */
 
-#![deny(missing_docs)]
-
-mod finder;
+#![forbid(missing_docs)]
 
 use finder::*;
 use rayon::prelude::*;
 use std::num::NonZeroUsize;
+
+mod finder;
 
 /// Trait for finding the longest common [`String`] prefix/suffix of any 2D collection.
 pub trait CommonStr {
