@@ -23,13 +23,21 @@ This indexing is safe because the index itself is directly derived from the mini
 slices/strs being compared.
 */
 
+// Our use case of chunks is specific, where we only want to chunk up
+// until we find a difference in the two strings being compared, then
+// we want to move to individual element comparison at that point.
+// Most users of chunking only want the remainder after chunks of the desired
+// size are no longer available, which isn't correct for our implementation.
+#![allow(clippy::chunks_exact_to_as_chunks)]
+
 /// Equivalent to `__m128i::BITS` / `u8::BITS`. This allows the
 /// string prefix/suffix methods to autovectorize their operations,
 /// which provides a >50%+ speed increase on my machine.
 ///
-/// Testing suggests that this doesn't scale all that well to larger
-/// vector registers, even in examples containing relatively long
-/// common prefixes/suffixes.
+/// Increasing this to enable AVX2/512 autovectorization doesn't really provide
+/// much performance benefit. At smaller collection sizes the performance is already
+/// excellent, and at larger collection sizes we bottleneck on memory bandwidth,
+/// which I find to be fucking hilarious.
 const CHUNK_SIZE: usize = 128 / 8;
 
 trait EqCounter {
